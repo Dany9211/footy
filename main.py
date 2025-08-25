@@ -179,7 +179,9 @@ if "Anno" in df.columns:
         anni = ["Tutti"] + sorted(df_anni_numeric.unique().astype(int)) # Converti a int per la visualizzazione
         selected_anno = st.sidebar.selectbox("Seleziona Anno", anni)
         if selected_anno != "Tutti":
-            filters["Anno"] = selected_anno
+            # Se è un anno specifico, aggiungilo come filtro di uguaglianza
+            filters["Anno"] = selected_anno 
+        # Se è "Tutti", non aggiungere "Anno" ai filtri, così non viene filtrato
     else:
         st.sidebar.info("Nessun anno valido trovato nella colonna 'Anno'.")
 else:
@@ -283,17 +285,12 @@ for col, val in filters.items():
     # DEBUG: Print types and values before comparison
     st.write(f"DEBUG: Processing filter for column '{col}'. Type of val: {type(val)}, Value of val: {val}") 
     
-    # Per i filtri di range numerici
+    # Per i filtri di range numerici (Giornata, Quote, ecc.)
     if col in ["Odd_Home", "Odd_Draw", "Odd__Away", "Odd_Over_0.5", "Odd_over_1.5", 
                 "Odd_over_2.5", "Odd_Over_3.5", "Odd_Over_4.5", "Odd_Under_0.5", 
                 "Odd_Under_1.5", "Odd_Under_2.5", "Odd_Under_3.5", "Odd_Under_4.5", 
-                "BTTS_SI", "Giornata", "Anno"]:
+                "BTTS_SI", "Giornata"]: # Anno rimosso da qui
         
-        # Gestione specifica per il caso "Tutti" nel filtro Anno
-        if col == "Anno" and val == "Tutti":
-            # Non applicare alcun filtro per l'anno se è "Tutti"
-            continue
-
         # CRUCIAL: Ensure val is a tuple for range filters
         if not isinstance(val, tuple) or len(val) != 2:
             st.error(f"Errore: il valore del filtro per la colonna '{col}' ({val}) non è un intervallo numerico valido. Ignoro il filtro.") # Messaggio di errore in rosso
@@ -323,6 +320,9 @@ for col, val in filters.items():
         else:
             st.error(f"Errore: il valore del filtro per la colonna '{col}' non è una lista come previsto. Ignoro il filtro.") # Messaggio di errore in rosso
             continue
+    elif col == "Anno": # Gestione specifica per il filtro Anno (selezione singola)
+        # Qui val sarà un singolo anno intero (o None se "Tutti" non è selezionato)
+        filtered_df = filtered_df[filtered_df[col] == val]
     else: # Per i filtri a selezione singola (es. League, Home_Team, Away_Team)
         filtered_df = filtered_df[filtered_df[col] == val]
 
@@ -1876,12 +1876,12 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
             with col1:
                 st.subheader(f"WinRate HT H2H ({len(h2h_df)})")
                 df_winrate_ht_h2h = calcola_winrate(h2h_df, "risultato_ht")
-                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
                 st.dataframe(styled_df_ht)
             with col2:
                 st.subheader(f"WinRate FT H2H ({len(h2h_df)})")
                 df_winrate_ft_h2h = calcola_winrate(h2h_df, "risultato_ft")
-                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
                 st.dataframe(styled_df_ft)
             
             # Doppia Chance H2H
