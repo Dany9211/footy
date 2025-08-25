@@ -175,7 +175,7 @@ if "Anno" in df.columns:
     if not df_anni_numeric.empty:
         anni = ["Tutti"] + sorted(df_anni_numeric.unique().astype(int)) # Converti a int per la visualizzazione
         selected_anno = st.sidebar.selectbox("Seleziona Anno", anni)
-        if selected_anno != "Tutti":
+        if selected_anno != "Tutte":
             filters["Anno"] = selected_anno
     else:
         st.sidebar.info("Nessun anno valido trovato nella colonna 'Anno'.")
@@ -306,7 +306,7 @@ def calcola_first_to_score_outcome(df_to_analyze):
         "Nessun Gol": 0
     }
     
-    total_matches = len(df_to_analyze) # Corretto da totale_partite a total_matches
+    total_matches = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
         gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
@@ -358,7 +358,7 @@ def calcola_first_to_score_next_goal_outcome(df_to_analyze):
         "Solo un gol o nessuno": 0
     }
     
-    total_matches = len(df_to_analyze) # Corretto da totale_partite a total_matches
+    total_matches = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
         gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
@@ -508,7 +508,7 @@ def calcola_first_to_score_sh(df_to_analyze):
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
     risultati = {"Home Team": 0, "Away Team": 0, "No Goals SH": 0}
-    total_matches = len(df_to_analyze) # Corretto da totale_partite a total_matches
+    total_matches = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
         gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
@@ -657,15 +657,15 @@ def calcola_to_score_sh(df_to_analyze):
     
     total_matches = len(df_to_score)
     
-    data = [
+    stats = [ # Inizializza la lista stats qui
         ["Home Team to Score SH", home_to_score_count, round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0],
         ["Away Team to Score SH", away_to_score_count, round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0]
     ]
     
-    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %"])
     df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
     
-    return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    return df_stats
 
 def calcola_clean_sheet_sh(df_to_analyze):
     if df_to_analyze.empty:
@@ -803,7 +803,7 @@ def calcola_first_to_score(df_to_analyze):
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
     risultati = {"Home Team": 0, "Away Team": 0, "No Goals": 0}
-    total_matches = len(df_to_analyze) # Corretto da totale_partite a total_matches
+    total_matches = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
         gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
@@ -837,7 +837,7 @@ def calcola_first_to_score_ht(df_to_analyze):
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
     risultati = {"Home Team": 0, "Away Team": 0, "No Goals": 0}
-    total_matches = len(df_to_analyze) # Corretto da totale_partite a total_matches
+    total_matches = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
         gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
@@ -908,7 +908,7 @@ def mostra_distribuzione_timeband(df_to_analyze):
     intervalli = [(0, 15), (16, 30), (31, 45), (46, 60), (61, 75), (76, 90), (91, 150)]
     label_intervalli = ["0-15", "16-30", "31-45", "46-60", "61-75", "76-90", "90+"]
     risultati = []
-    total_matches = len(df_to_analyze) # Corretto da totale_partite a total_matches
+    total_matches = len(df_to_analyze)
     for (start, end), label in zip(intervalli, label_intervalli):
         partite_con_gol = 0
         for _, row in df_to_analyze.iterrows():
@@ -931,7 +931,7 @@ def mostra_distribuzione_timeband_5min(df_to_analyze):
     intervalli = [(0,5), (6,10), (11,15), (16,20), (21,25), (26,30), (31,35), (36,40), (41,45), (46,50), (51,55), (56,60), (61,65), (66,70), (71,75), (76,80), (81,85), (86,90), (91, 150)]
     label_intervalli = ["0-5", "6-10", "11-15", "16-20", "21-25", "26-30", "31-35", "36-40", "41-45", "46-50", "51-55", "56-60", "61-65", "66-70", "71-75", "76-80", "81-85", "86-90", "90+"]
     risultati = []
-    total_matches = len(df_to_analyze) # Corretto da totale_partite a total_matches
+    total_matches = len(df_to_analyze)
     for (start, end), label in zip(intervalli, label_intervalli):
         partite_con_gol = 0
         for _, row in df_to_analyze.iterrows():
@@ -952,7 +952,7 @@ def calcola_next_goal(df_to_analyze, start_min, end_min):
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
     risultati = {"Prossimo Gol: Home": 0, "Prossimo Gol: Away": 0, "Nessun prossimo gol": 0}
-    total_matches = len(df_to_analyze) # Corretto da totale_partite a total_matches
+    total_matches = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
         gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
@@ -1011,7 +1011,7 @@ def calcola_rimonte(df_to_analyze, titolo_analisi):
     rimonte_completa_away = (df_rimonte["rimonta"] == "Completa - Away").sum()
     rimonte_parziale_away = (df_rimonte["rimonta"] == "Parziale - Away").sum()
 
-    total_matches = len(df_rimonte) # Corretto da totale a total_matches
+    total_matches = len(df_rimonte)
     
     rimonte_data = [
         ["Rimonta Completa (Home)", rimonte_completa_home, round((rimonte_completa_home / total_matches) * 100, 2) if total_matches > 0 else 0],
@@ -1048,7 +1048,7 @@ def calcola_to_score(df_to_analyze):
     home_to_score_count = (df_to_score["Gol_Home_FT"] > 0).sum()
     away_to_score_count = (df_to_score["Gol_Away_FT"] > 0).sum()
     
-    total_matches = len(df_to_score) # Corretto da total_matches a total_matches
+    total_matches = len(df_to_score)
     
     data = [
         ["Home Team to Score", home_to_score_count, round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0],
@@ -1070,7 +1070,7 @@ def calcola_to_score_ht(df_to_analyze):
     home_to_score_count = (df_to_score["Gol_Home_HT"] > 0).sum()
     away_to_score_count = (df_to_score["Gol_Away_HT"] > 0).sum()
     
-    total_matches = len(df_to_analyze) # Corretto da total_matches a total_matches
+    total_matches = len(df_to_analyze)
     
     data = [
         ["Home Team to Score", home_to_score_count, round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0],
@@ -1092,7 +1092,7 @@ def calcola_btts_ht(df_to_analyze):
     btts_count = ((df_btts_ht["Gol_Home_HT"] > 0) & (df_btts_ht["Gol_Away_HT"] > 0)).sum()
     no_btts_count = len(df_btts_ht) - btts_count
     
-    total_matches = len(df_btts_ht) # Corretto da total_matches a total_matches
+    total_matches = len(df_btts_ht)
     
     data = [
         ["BTTS SI HT", btts_count, round((btts_count / total_matches) * 100, 2) if total_matches > 0 else 0],
@@ -1114,7 +1114,7 @@ def calcola_btts_ft(df_to_analyze):
     btts_count = ((df_btts_ft["Gol_Home_FT"] > 0) & (df_btts_ft["Gol_Away_FT"] > 0)).sum()
     no_btts_count = len(df_btts_ft) - btts_count
     
-    total_matches = len(df_btts_ft) # Corretto da total_matches a total_matches
+    total_matches = len(df_btts_ft)
     
     data = [
         ["BTTS SI FT", btts_count, round((btts_count / total_matches) * 100, 2) if total_matches > 0 else 0],
@@ -1188,7 +1188,7 @@ def calcola_btts_ht_dinamico(df_to_analyze):
     btts_count = ((df_btts_ht_dinamico["Gol_Home_HT"] > 0) & (df_btts_ht_dinamico["Gol_Away_HT"] > 0)).sum()
     no_btts_count = len(df_btts_ht_dinamico) - btts_count
     
-    total_matches = len(df_btts_ht_dinamico) # Corretto da total_matches a total_matches
+    total_matches = len(df_btts_ht_dinamico)
     
     data = [
         ["BTTS SI HT (Dinamica)", btts_count, round((btts_count / total_matches) * 100, 2) if total_matches > 0 else 0],
@@ -1210,7 +1210,7 @@ def calcola_clean_sheet(df_to_analyze):
     home_clean_sheet_count = (df_clean_sheet["Gol_Away_FT"] == 0).sum()
     away_clean_sheet_count = (df_clean_sheet["Gol_Home_FT"] == 0).sum()
     
-    total_matches = len(df_clean_sheet) # Corretto da total_matches a total_matches
+    total_matches = len(df_clean_sheet)
     
     data = [
         ["Clean Sheet (Casa)", home_clean_sheet_count, round((home_clean_sheet_count / total_matches) * 100, 2) if total_matches > 0 else 0],
@@ -1240,7 +1240,7 @@ def calcola_combo_stats(df_to_analyze):
     # Away Win + Over 2.5
     away_win_over_2_5_count = ((df_combo["Gol_Away_FT"] > df_combo["Gol_Home_FT"]) & (df_combo["tot_goals_ft"] > 2.5)).sum()
     
-    total_matches = len(df_combo) # Corretto da total_matches a total_matches
+    total_matches = len(df_combo)
     
     data = [
         ["BTTS SI + Over 2.5", btts_over_2_5_count, round((btts_over_2_5_count / total_matches) * 100, 2) if total_matches > 0 else 0],
@@ -1260,7 +1260,7 @@ def calcola_multi_gol(df_to_analyze, col_gol, titolo):
     
     df_multi_gol = df_to_analyze.copy()
     
-    total_matches = len(df_multi_gol) # Corretto da total_matches a total_matches
+    total_matches = len(df_multi_gol)
     
     multi_gol_ranges = [
         ("0-1", lambda x: (x >= 0) & (x <= 1)),
