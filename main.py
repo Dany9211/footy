@@ -171,6 +171,7 @@ if "League" in df.columns:
         filters["League"] = selected_league
     
     # Crea un DataFrame temporaneo per filtrare le squadre in base al campionato
+    # Questo filtered_teams_df è usato solo per popolare i selectbox di Home_Team/Away_Team
     if selected_league != "Tutte":
         filtered_teams_df = df[df["League"] == selected_league]
     else:
@@ -1377,16 +1378,17 @@ def calcola_multi_gol(df_to_analyze, col_gol, titolo):
 # SEZIONE 1: Analisi Timeband per Campionato
 st.subheader("1. Analisi Timeband per Campionato")
 if selected_league != "Tutte":
-    df_league_only = df[df["League"] == selected_league]
-    st.write(f"Analisi basata su **{len(df_league_only)}** partite del campionato **{selected_league}**.")
+    # df_league_only ora è un sottoinsieme di filtered_df, quindi eredita tutti i filtri generali, inclusi gli anni
+    df_league_only_filtered = filtered_df[filtered_df["League"] == selected_league]
+    st.write(f"Analisi basata su **{len(df_league_only_filtered)}** partite del campionato **{selected_league}**.")
     st.write("---")
     col1, col2 = st.columns(2)
     with col1:
         st.write("**Distribuzione Gol per Timeframe (15min)**")
-        mostra_distribuzione_timeband(df_league_only) # Chiamata senza min_start_display
+        mostra_distribuzione_timeband(df_league_only_filtered)
     with col2:
         st.write("**Distribuzione Gol per Timeframe (5min)**")
-        mostra_distribuzione_timeband_5min(df_league_only) # Chiamata senza min_start_display
+        mostra_distribuzione_timeband_5min(df_league_only_filtered)
 else:
     st.write("Seleziona un campionato per visualizzare questa analisi.")
 
@@ -1862,12 +1864,8 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
     else:
         st.warning("Il dataset filtrato è vuoto o mancano le colonne necessarie per l'analisi.")
 
-# --- SEZIONE 5: Analisi Head-to-Head (H2H) ---
-# Questa sezione è stata rimossa come richiesto dall'utente.
-# --- FINE SEZIONE 5 ---
 
-
-# --- SEZIONE 6: Backtesting Strategie ---
+# --- SEZIONE 5: Backtesting Strategie ---
 st.subheader("5. Backtesting Strategie") # Rinumerata a 5
 st.write("Testa una strategia di scommesse sui dati filtrati.")
 
@@ -2041,7 +2039,7 @@ if not team_specific_analysis_df.empty:
     # WinRate
     st.subheader(f"WinRate ({len(team_specific_analysis_df)})")
     df_winrate_team = calcola_winrate(team_specific_analysis_df, "risultato_ft")
-    styled_df_team = df_winrate_team.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+    styled_df_team = df_winrate_team.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
     st.dataframe(styled_df_team)
 
     # Over Goals FT
