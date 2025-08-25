@@ -10,11 +10,13 @@ st.title("Analisi Tabella 23agosto2023")
 def load_data(uploaded_file):
     """
     Carica i dati da un file CSV caricato dall'utente.
+    Aggiunto on_bad_lines='skip' per gestire righe malformate.
     """
     if uploaded_file is not None:
         try:
             # Assumiamo che il delimitatore sia ';' come nel tuo file di esempio
-            df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8')
+            # Utilizziamo on_bad_lines='skip' per ignorare le righe che causano errori di parsing
+            df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8', on_bad_lines='skip')
             return df
         except Exception as e:
             st.error(f"Errore durante la lettura del file CSV: {e}")
@@ -27,7 +29,7 @@ uploaded_file = st.sidebar.file_uploader("Carica il tuo file CSV", type=["csv"])
 if uploaded_file is not None:
     df = load_data(uploaded_file)
     if df.empty:
-        st.warning("Il DataFrame caricato dal file è vuoto o c'è stato un errore di lettura.")
+        st.warning("Il DataFrame caricato dal file è vuoto o c'è stato un errore di lettura. Controlla il formato del tuo CSV.")
         st.stop()
     st.write(f"**Righe iniziali nel dataset:** {len(df)}")
 else:
@@ -35,9 +37,9 @@ else:
     st.stop()
 
 # --- Aggiunta colonne risultato_ft e risultato_ht ---
-if "Gol_Home_FT" in df.columns and "Gol_Away_FT" in df.columns: # Ho corretto i nomi delle colonne
+if "Gol_Home_FT" in df.columns and "Gol_Away_FT" in df.columns:
     df["risultato_ft"] = df["Gol_Home_FT"].astype(str) + "-" + df["Gol_Away_FT"].astype(str)
-if "Gol_Home_HT" in df.columns and "Gol_Away_HT" in df.columns: # Ho corretto i nomi delle colonne
+if "Gol_Home_HT" in df.columns and "Gol_Away_HT" in df.columns:
     df["risultato_ht"] = df["Gol_Home_HT"].astype(str) + "-" + df["Gol_Away_HT"].astype(str)
 
 filters = {}
@@ -46,15 +48,15 @@ filters = {}
 st.sidebar.header("Filtri Dati")
 
 # Filtro League (Campionato) - Deve essere il primo per filtrare le squadre
-if "League" in df.columns: # Ho corretto il nome della colonna
+if "League" in df.columns:
     leagues = ["Tutte"] + sorted(df["League"].dropna().unique())
     selected_league = st.sidebar.selectbox("Seleziona Campionato", leagues)
     if selected_league != "Tutte":
-        filters["League"] = selected_league # Ho corretto il nome della colonna
+        filters["League"] = selected_league
     
     # Crea un DataFrame temporaneo per filtrare le squadre in base al campionato
     if selected_league != "Tutte":
-        filtered_teams_df = df[df["League"] == selected_league] # Ho corretto il nome della colonna
+        filtered_teams_df = df[df["League"] == selected_league]
     else:
         filtered_teams_df = df.copy()
 else:
@@ -62,14 +64,14 @@ else:
     selected_league = "Tutte"
 
 # Filtro Anno
-if "Anno" in df.columns: # Ho corretto il nome della colonna
+if "Anno" in df.columns:
     anni = ["Tutti"] + sorted(df["Anno"].dropna().unique())
     selected_anno = st.sidebar.selectbox("Seleziona Anno", anni)
     if selected_anno != "Tutti":
-        filters["Anno"] = selected_anno # Ho corretto il nome della colonna
+        filters["Anno"] = selected_anno
 
 # Filtro Giornata
-if "Giornata" in df.columns: # Ho corretto il nome della colonna
+if "Giornata" in df.columns:
     giornata_min = int(df["Giornata"].min()) if not df["Giornata"].isnull().all() else 1
     giornata_max = int(df["Giornata"].max()) if not df["Giornata"].isnull().all() else 38
     giornata_range = st.sidebar.slider(
@@ -78,20 +80,20 @@ if "Giornata" in df.columns: # Ho corretto il nome della colonna
         max_value=giornata_max,
         value=(giornata_min, giornata_max)
     )
-    filters["Giornata"] = giornata_range # Ho corretto il nome della colonna
+    filters["Giornata"] = giornata_range
 
 # --- FILTRI SQUADRE (ora dinamici) ---
-if "Home_Team" in filtered_teams_df.columns: # Ho corretto il nome della colonna
+if "Home_Team" in filtered_teams_df.columns:
     home_teams = ["Tutte"] + sorted(filtered_teams_df["Home_Team"].dropna().unique())
     selected_home = st.sidebar.selectbox("Seleziona Squadra Home", home_teams)
     if selected_home != "Tutte":
-        filters["Home_Team"] = selected_home # Ho corretto il nome della colonna
+        filters["Home_Team"] = selected_home
 
-if "Away_Team" in filtered_teams_df.columns: # Ho corretto il nome della colonna
+if "Away_Team" in filtered_teams_df.columns:
     away_teams = ["Tutte"] + sorted(filtered_teams_df["Away_Team"].dropna().unique())
     selected_away = st.sidebar.selectbox("Seleziona Squadra Away", away_teams)
     if selected_away != "Tutte":
-        filters["Away_Team"] = selected_away # Ho corretto il nome della colonna
+        filters["Away_Team"] = selected_away
 
 # --- NUOVO FILTRO: Risultato HT ---
 if "risultato_ht" in df.columns:
@@ -119,10 +121,8 @@ def add_range_filter(col_name, label=None):
                 st.sidebar.warning(f"Valori non validi per {label or col_name}. Inserisci numeri.")
 
 st.sidebar.header("Filtri Quote")
-# Ho corretto i nomi delle colonne delle quote
 for col in ["Odd_Home", "Odd_Draw", "Odd__Away"]:
     add_range_filter(col)
-# Ho aggiunto le quote over/under e BTTS
 for col in ["Odd_Over_0.5", "Odd_over_1.5", "Odd_over_2.5", "Odd_Over_3.5", "Odd_Over_4.5",
             "Odd_Under_0.5", "Odd_Under_1.5", "Odd_Under_2.5", "Odd_Under_3.5", "Odd_Under_4.5", "BTTS_SI"]:
     add_range_filter(col)
@@ -131,11 +131,10 @@ for col in ["Odd_Over_0.5", "Odd_over_1.5", "Odd_over_2.5", "Odd_Over_3.5", "Odd
 # --- APPLICA FILTRI AL DATAFRAME PRINCIPALE ---
 filtered_df = df.copy()
 for col, val in filters.items():
-    if col.startswith("Odd_") or col == "BTTS_SI": # Aggiornato per includere BTTS_SI
-        # Gestisce i numeri con la virgola come separatore decimale
+    if col.startswith("Odd_") or col == "BTTS_SI":
         mask = pd.to_numeric(filtered_df[col].astype(str).str.replace(",", "."), errors="coerce").between(val[0], val[1])
         filtered_df = filtered_df[mask.fillna(True)]
-    elif col == "Giornata": # Ho corretto il nome della colonna
+    elif col == "Giornata":
         mask = pd.to_numeric(filtered_df[col], errors="coerce").between(val[0], val[1])
         filtered_df = filtered_df[mask.fillna(True)]
     elif col == "risultato_ht":
@@ -149,7 +148,7 @@ st.write(f"**Righe visualizzate:** {len(filtered_df)}")
 # --- NUOVA SEZIONE: Riepilogo Risultati per Anno ---
 st.markdown("---")
 st.subheader("Riepilogo partite per Anno")
-if not filtered_df.empty and "Anno" in filtered_df.columns: # Ho corretto il nome della colonna
+if not filtered_df.empty and "Anno" in filtered_df.columns:
     partite_per_anno = filtered_df["Anno"].value_counts().sort_index()
     riepilogo_df = pd.DataFrame(partite_per_anno).reset_index()
     riepilogo_df.columns = ["Anno", "Partite Trovate"]
@@ -168,8 +167,8 @@ def calcola_first_to_score_outcome(df_to_analyze):
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
     # Assicurati che le colonne siano numeriche
-    df_to_analyze["Gol_Home_FT"] = pd.to_numeric(df_to_analyze["Gol_Home_FT"], errors='coerce') # Ho corretto il nome della colonna
-    df_to_analyze["Gol_Away_FT"] = pd.to_numeric(df_to_analyze["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
+    df_to_analyze["Gol_Home_FT"] = pd.to_numeric(df_to_analyze["Gol_Home_FT"], errors='coerce')
+    df_to_analyze["Gol_Away_FT"] = pd.to_numeric(df_to_analyze["Gol_Away_FT"], errors='coerce')
 
     risultati = {
         "Casa Segna Primo e Vince": 0,
@@ -182,8 +181,8 @@ def calcola_first_to_score_outcome(df_to_analyze):
     totale_partite = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
-        gol_home_str = str(row.get("Minutaggio_Gol_Home", "")) # Ho corretto il nome della colonna
-        gol_away_str = str(row.get("Minutaggio_gol_Away", "")) # Ho corretto il nome della colonna
+        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
 
         gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit()]
         gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit()]
@@ -191,8 +190,8 @@ def calcola_first_to_score_outcome(df_to_analyze):
         min_home_goal = min(gol_home) if gol_home else float('inf')
         min_away_goal = min(gol_away) if gol_away else float('inf')
         
-        home_vince = row["Gol_Home_FT"] > row["Gol_Away_FT"] # Ho corretto il nome della colonna
-        away_vince = row["Gol_Away_FT"] > row["Gol_Home_FT"] # Ho corretto il nome della colonna
+        home_vince = row["Gol_Home_FT"] > row["Gol_Away_FT"]
+        away_vince = row["Gol_Away_FT"] > row["Gol_Home_FT"]
         
         if min_home_goal < min_away_goal:
             # Home segna per primo
@@ -234,8 +233,8 @@ def calcola_first_to_score_next_goal_outcome(df_to_analyze):
     total_matches = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
-        gol_home_str = str(row.get("Minutaggio_Gol_Home", "")) # Ho corretto il nome della colonna
-        gol_away_str = str(row.get("Minutaggio_gol_Away", "")) # Ho corretto il nome della colonna
+        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
 
         gol_home = sorted([int(x) for x in gol_home_str.split(";") if x.isdigit()])
         gol_away = sorted([int(x) for x in gol_away_str.split(";") if x.isdigit()])
@@ -286,14 +285,14 @@ def calcola_double_chance(df_to_analyze, period):
     df_double_chance = df_to_analyze.copy()
     
     if period == 'ft':
-        df_double_chance["gol_home"] = pd.to_numeric(df_double_chance["Gol_Home_FT"], errors='coerce') # Ho corretto il nome della colonna
-        df_double_chance["gol_away"] = pd.to_numeric(df_double_chance["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
+        df_double_chance["gol_home"] = pd.to_numeric(df_double_chance["Gol_Home_FT"], errors='coerce')
+        df_double_chance["gol_away"] = pd.to_numeric(df_double_chance["Gol_Away_FT"], errors='coerce')
     elif period == 'ht':
-        df_double_chance["gol_home"] = pd.to_numeric(df_double_chance["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-        df_double_chance["gol_away"] = pd.to_numeric(df_double_chance["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+        df_double_chance["gol_home"] = pd.to_numeric(df_double_chance["Gol_Home_HT"], errors='coerce')
+        df_double_chance["gol_away"] = pd.to_numeric(df_double_chance["Gol_Away_HT"], errors='coerce')
     elif period == 'sh':
-        df_double_chance["gol_home_sh"] = pd.to_numeric(df_double_chance["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_double_chance["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-        df_double_chance["gol_away_sh"] = pd.to_numeric(df_double_chance["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_double_chance["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+        df_double_chance["gol_home_sh"] = pd.to_numeric(df_double_chance["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_double_chance["Gol_Home_HT"], errors='coerce')
+        df_double_chance["gol_away_sh"] = pd.to_numeric(df_double_chance["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_double_chance["Gol_Away_HT"], errors='coerce')
         df_double_chance["gol_home"] = df_double_chance["gol_home_sh"]
         df_double_chance["gol_away"] = df_double_chance["gol_away_sh"]
     else:
@@ -331,8 +330,8 @@ def calcola_stats_sh(df_to_analyze):
     df_sh = df_to_analyze.copy()
     
     # Calcolo dei gol nel secondo tempo
-    df_sh["gol_home_sh"] = pd.to_numeric(df_sh["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_sh["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-    df_sh["gol_away_sh"] = pd.to_numeric(df_sh["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_sh["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+    df_sh["gol_home_sh"] = pd.to_numeric(df_sh["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_sh["Gol_Home_HT"], errors='coerce')
+    df_sh["gol_away_sh"] = pd.to_numeric(df_sh["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_sh["Gol_Away_HT"], errors='coerce')
     
     # Winrate SH
     risultati_sh = {"1 (Casa)": 0, "X (Pareggio)": 0, "2 (Trasferta)": 0}
@@ -384,8 +383,8 @@ def calcola_first_to_score_sh(df_to_analyze):
     totale_partite = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
-        gol_home_str = str(row.get("Minutaggio_Gol_Home", "")) # Ho corretto il nome della colonna
-        gol_away_str = str(row.get("Minutaggio_gol_Away", "")) # Ho corretto il nome della colonna
+        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
 
         # Considera solo i gol segnati nel secondo tempo (minuto > 45)
         gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit() and int(x) > 45]
@@ -415,10 +414,10 @@ def calcola_first_to_score_outcome_sh(df_to_analyze):
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
     # Assicurati che le colonne siano numeriche
-    df_to_analyze["Gol_Home_FT"] = pd.to_numeric(df_to_analyze["Gol_Home_FT"], errors='coerce') # Ho corretto il nome della colonna
-    df_to_analyze["Gol_Away_FT"] = pd.to_numeric(df_to_analyze["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
-    df_to_analyze["Gol_Home_HT"] = pd.to_numeric(df_to_analyze["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-    df_to_analyze["Gol_Away_HT"] = pd.to_numeric(df_to_analyze["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+    df_to_analyze["Gol_Home_FT"] = pd.to_numeric(df_to_analyze["Gol_Home_FT"], errors='coerce')
+    df_to_analyze["Gol_Away_FT"] = pd.to_numeric(df_to_analyze["Gol_Away_FT"], errors='coerce')
+    df_to_analyze["Gol_Home_HT"] = pd.to_numeric(df_to_analyze["Gol_Home_HT"], errors='coerce')
+    df_to_analyze["Gol_Away_HT"] = pd.to_numeric(df_to_analyze["Gol_Away_HT"], errors='coerce')
     
     risultati = {
         "Casa Segna Primo SH e Vince": 0,
@@ -431,8 +430,8 @@ def calcola_first_to_score_outcome_sh(df_to_analyze):
     total_matches = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
-        gol_home_str = str(row.get("Minutaggio_Gol_Home", "")) # Ho corretto il nome della colonna
-        gol_away_str = str(row.get("Minutaggio_gol_Away", "")) # Ho corretto il nome della colonna
+        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
 
         gol_home_sh = [int(x) for x in gol_home_str.split(";") if x.isdigit() and int(x) > 45]
         gol_away_sh = [int(x) for x in gol_away_str.split(";") if x.isdigit() and int(x) > 45]
@@ -440,8 +439,8 @@ def calcola_first_to_score_outcome_sh(df_to_analyze):
         min_home_goal = min(gol_home_sh) if gol_home_sh else float('inf')
         min_away_goal = min(gol_away_sh) if gol_away_sh else float('inf')
         
-        home_vince = row["Gol_Home_FT"] > row["Gol_Away_FT"] # Ho corretto il nome della colonna
-        away_vince = row["Gol_Away_FT"] > row["Gol_Home_FT"] # Ho corretto il nome della colonna
+        home_vince = row["Gol_Home_FT"] > row["Gol_Away_FT"]
+        away_vince = row["Gol_Away_FT"] > row["Gol_Home_FT"]
         
         if min_home_goal < min_away_goal:
             if home_vince:
@@ -479,8 +478,8 @@ def calcola_first_to_score_next_goal_outcome_sh(df_to_analyze):
     total_matches = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
-        gol_home_str = str(row.get("Minutaggio_Gol_Home", "")) # Ho corretto il nome della colonna
-        gol_away_str = str(row.get("Minutaggio_gol_Away", "")) # Ho corretto il nome della colonna
+        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
 
         gol_home_sh = sorted([int(x) for x in gol_home_str.split(";") if x.isdigit() and int(x) > 45])
         gol_away_sh = sorted([int(x) for x in gol_away_str.split(";") if x.isdigit() and int(x) > 45])
@@ -528,8 +527,8 @@ def calcola_to_score_sh(df_to_analyze):
 
     df_to_score = df_to_analyze.copy()
 
-    df_to_score["gol_home_sh"] = pd.to_numeric(df_to_score["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_to_score["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-    df_to_score["gol_away_sh"] = pd.to_numeric(df_to_score["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_to_score["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+    df_to_score["gol_home_sh"] = pd.to_numeric(df_to_score["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_to_score["Gol_Home_HT"], errors='coerce')
+    df_to_score["gol_away_sh"] = pd.to_numeric(df_to_score["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_to_score["Gol_Away_HT"], errors='coerce')
 
     home_to_score_count = (df_to_score["gol_home_sh"] > 0).sum()
     away_to_score_count = (df_to_score["gol_away_sh"] > 0).sum()
@@ -552,8 +551,8 @@ def calcola_clean_sheet_sh(df_to_analyze):
     
     df_clean_sheet = df_to_analyze.copy()
     
-    df_clean_sheet["gol_home_sh"] = pd.to_numeric(df_clean_sheet["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_clean_sheet["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-    df_clean_sheet["gol_away_sh"] = pd.to_numeric(df_clean_sheet["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_clean_sheet["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+    df_clean_sheet["gol_home_sh"] = pd.to_numeric(df_clean_sheet["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_clean_sheet["Gol_Home_HT"], errors='coerce')
+    df_clean_sheet["gol_away_sh"] = pd.to_numeric(df_clean_sheet["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_clean_sheet["Gol_Away_HT"], errors='coerce')
     
     home_clean_sheet_count = (df_clean_sheet["gol_away_sh"] == 0).sum()
     away_clean_sheet_count = (df_clean_sheet["gol_home_sh"] == 0).sum()
@@ -578,14 +577,14 @@ def calcola_goals_per_team_period(df_to_analyze, team_type, action_type, period)
     df_temp = df_to_analyze.copy()
     
     if period == 'ft':
-        scored_col = "Gol_Home_FT" if team_type == 'home' else "Gol_Away_FT" # Ho corretto il nome della colonna
-        conceded_col = "Gol_Away_FT" if team_type == 'home' else "Gol_Home_FT" # Ho corretto il nome della colonna
+        scored_col = "Gol_Home_FT" if team_type == 'home' else "Gol_Away_FT"
+        conceded_col = "Gol_Away_FT" if team_type == 'home' else "Gol_Home_FT"
     elif period == 'ht':
-        scored_col = "Gol_Home_HT" if team_type == 'home' else "Gol_Away_HT" # Ho corretto il nome della colonna
-        conceded_col = "Gol_Away_HT" if team_type == 'home' else "Gol_Home_HT" # Ho corretto il nome della colonna
+        scored_col = "Gol_Home_HT" if team_type == 'home' else "Gol_Away_HT"
+        conceded_col = "Gol_Away_HT" if team_type == 'home' else "Gol_Home_HT"
     elif period == 'sh':
-        df_temp["gol_home_sh"] = pd.to_numeric(df_temp["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_temp["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-        df_temp["gol_away_sh"] = pd.to_numeric(df_temp["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_temp["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+        df_temp["gol_home_sh"] = pd.to_numeric(df_temp["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_temp["Gol_Home_HT"], errors='coerce')
+        df_temp["gol_away_sh"] = pd.to_numeric(df_temp["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_temp["Gol_Away_HT"], errors='coerce')
         scored_col = "gol_home_sh" if team_type == 'home' else "gol_away_sh"
         conceded_col = "gol_away_sh" if team_type == 'home' else "gol_home_sh"
     else:
@@ -617,14 +616,14 @@ def calcola_double_chance(df_to_analyze, period):
     df_double_chance = df_to_analyze.copy()
     
     if period == 'ft':
-        df_double_chance["gol_home"] = pd.to_numeric(df_double_chance["Gol_Home_FT"], errors='coerce') # Ho corretto il nome della colonna
-        df_double_chance["gol_away"] = pd.to_numeric(df_double_chance["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
+        df_double_chance["gol_home"] = pd.to_numeric(df_double_chance["Gol_Home_FT"], errors='coerce')
+        df_double_chance["gol_away"] = pd.to_numeric(df_double_chance["Gol_Away_FT"], errors='coerce')
     elif period == 'ht':
-        df_double_chance["gol_home"] = pd.to_numeric(df_double_chance["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-        df_double_chance["gol_away"] = pd.to_numeric(df_double_chance["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+        df_double_chance["gol_home"] = pd.to_numeric(df_double_chance["Gol_Home_HT"], errors='coerce')
+        df_double_chance["gol_away"] = pd.to_numeric(df_double_chance["Gol_Away_HT"], errors='coerce')
     elif period == 'sh':
-        df_double_chance["gol_home_sh"] = pd.to_numeric(df_double_chance["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_double_chance["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-        df_double_chance["gol_away_sh"] = pd.to_numeric(df_double_chance["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_double_chance["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+        df_double_chance["gol_home_sh"] = pd.to_numeric(df_double_chance["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_double_chance["Gol_Home_HT"], errors='coerce')
+        df_double_chance["gol_away_sh"] = pd.to_numeric(df_double_chance["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_double_chance["Gol_Away_HT"], errors='coerce')
         df_double_chance["gol_home"] = df_double_chance["gol_home_sh"]
         df_double_chance["gol_away"] = df_double_chance["gol_away_sh"]
     else:
@@ -686,8 +685,8 @@ def calcola_first_to_score(df_to_analyze):
     totale_partite = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
-        gol_home_str = str(row.get("Minutaggio_Gol_Home", "")) # Ho corretto il nome della colonna
-        gol_away_str = str(row.get("Minutaggio_gol_Away", "")) # Ho corretto il nome della colonna
+        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
 
         gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit()]
         gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit()]
@@ -720,8 +719,8 @@ def calcola_first_to_score_ht(df_to_analyze):
     totale_partite = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
-        gol_home_str = str(row.get("Minutaggio_Gol_Home", "")) # Ho corretto il nome della colonna
-        gol_away_str = str(row.get("Minutaggio_gol_Away", "")) # Ho corretto il nome della colonna
+        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
 
         # Considera solo i gol segnati nel primo tempo (minuto <= 45)
         gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit() and int(x) <= 45]
@@ -792,8 +791,8 @@ def mostra_distribuzione_timeband(df_to_analyze):
     for (start, end), label in zip(intervalli, label_intervalli):
         partite_con_gol = 0
         for _, row in df_to_analyze.iterrows():
-            gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()] # Ho corretto il nome della colonna
-            gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()] # Ho corretto il nome della colonna
+            gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
+            gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
             if any(start <= g <= end for g in gol_home + gol_away):
                 partite_con_gol += 1
         perc = round((partite_con_gol / totale_partite) * 100, 2) if totale_partite > 0 else 0
@@ -815,8 +814,8 @@ def mostra_distribuzione_timeband_5min(df_to_analyze):
     for (start, end), label in zip(intervalli, label_intervalli):
         partite_con_gol = 0
         for _, row in df_to_analyze.iterrows():
-            gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()] # Ho corretto il nome della colonna
-            gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()] # Ho corretto il nome della colonna
+            gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
+            gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
             if any(start <= g <= end for g in gol_home + gol_away):
                 partite_con_gol += 1
         perc = round((partite_con_gol / totale_partite) * 100, 2) if totale_partite > 0 else 0
@@ -835,8 +834,8 @@ def calcola_next_goal(df_to_analyze, start_min, end_min):
     totale_partite = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
-        gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()] # Ho corretto il nome della colonna
-        gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()] # Ho corretto il nome della colonna
+        gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
+        gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
 
         next_home_goal = min([g for g in gol_home if start_min <= g <= end_min] or [float('inf')])
         next_away_goal = min([g for g in gol_away if start_min <= g <= end_min] or [float('inf')])
@@ -868,21 +867,21 @@ def calcola_rimonte(df_to_analyze, titolo_analisi):
     df_rimonte = df_to_analyze.copy()
     
     # Aggiungi colonne per i gol HT e FT
-    df_rimonte["Gol_Home_HT"] = pd.to_numeric(df_rimonte["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-    df_rimonte["Gol_Away_HT"] = pd.to_numeric(df_rimonte["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
-    df_rimonte["Gol_Home_FT"] = pd.to_numeric(df_rimonte["Gol_Home_FT"], errors='coerce') # Ho corretto il nome della colonna
-    df_rimonte["Gol_Away_FT"] = pd.to_numeric(df_rimonte["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
+    df_rimonte["Gol_Home_HT"] = pd.to_numeric(df_rimonte["Gol_Home_HT"], errors='coerce')
+    df_rimonte["Gol_Away_HT"] = pd.to_numeric(df_rimonte["Gol_Away_HT"], errors='coerce')
+    df_rimonte["Gol_Home_FT"] = pd.to_numeric(df_rimonte["Gol_Home_FT"], errors='coerce')
+    df_rimonte["Gol_Away_FT"] = pd.to_numeric(df_rimonte["Gol_Away_FT"], errors='coerce')
 
     def check_comeback(row):
         # Rimonta Home
-        if row["Gol_Home_HT"] < row["Gol_Away_HT"] and row["Gol_Home_FT"] > row["Gol_Away_FT"]: # Ho corretto il nome della colonna
+        if row["Gol_Home_HT"] < row["Gol_Away_HT"] and row["Gol_Home_FT"] > row["Gol_Away_FT"]:
             return "Completa - Home"
-        if row["Gol_Home_HT"] < row["Gol_Away_HT"] and row["Gol_Home_FT"] == row["Gol_Away_FT"]: # Ho corretto il nome della colonna
+        if row["Gol_Home_HT"] < row["Gol_Away_HT"] and row["Gol_Home_FT"] == row["Gol_Away_FT"]:
             return "Parziale - Home"
         # Rimonta Away
-        if row["Gol_Away_HT"] < row["Gol_Home_HT"] and row["Gol_Away_FT"] > row["Gol_Home_FT"]: # Ho corretto il nome della colonna
+        if row["Gol_Away_HT"] < row["Gol_Home_HT"] and row["Gol_Away_FT"] > row["Gol_Home_FT"]:
             return "Completa - Away"
-        if row["Gol_Away_HT"] < row["Gol_Home_HT"] and row["Gol_Away_FT"] == row["Gol_Home_FT"]: # Ho corretto il nome della colonna
+        if row["Gol_Away_HT"] < row["Gol_Home_HT"] and row["Gol_Away_FT"] == row["Gol_Home_FT"]:
             return "Parziale - Away"
         return "Nessuna"
 
@@ -907,10 +906,10 @@ def calcola_rimonte(df_to_analyze, titolo_analisi):
     df_rimonte_stats["Odd Minima"] = df_rimonte_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
     
     # Crea la lista di squadre per ogni tipo di rimonta
-    squadre_rimonta_completa_home = df_rimonte[df_rimonte["rimonta"] == "Completa - Home"]["Home_Team"].tolist() # Ho corretto il nome della colonna
-    squadre_rimonta_parziale_home = df_rimonte[df_rimonte["rimonta"] == "Parziale - Home"]["Home_Team"].tolist() # Ho corretto il nome della colonna
-    squadre_rimonta_completa_away = df_rimonte[df_rimonte["rimonta"] == "Completa - Away"]["Away_Team"].tolist() # Ho corretto il nome della colonna
-    squadre_rimonta_parziale_away = df_rimonte[df_rimonte["rimonta"] == "Parziale - Away"]["Away_Team"].tolist() # Ho corretto il nome della colonna
+    squadre_rimonta_completa_home = df_rimonte[df_rimonte["rimonta"] == "Completa - Home"]["Home_Team"].tolist()
+    squadre_rimonta_parziale_home = df_rimonte[df_rimonte["rimonta"] == "Parziale - Home"]["Home_Team"].tolist()
+    squadre_rimonta_completa_away = df_rimonte[df_rimonte["rimonta"] == "Completa - Away"]["Away_Team"].tolist()
+    squadre_rimonta_parziale_away = df_rimonte[df_rimonte["rimonta"] == "Parziale - Away"]["Away_Team"].tolist()
     
     squadre_rimonte = {
         "Rimonta Completa (Home)": squadre_rimonta_completa_home,
@@ -928,11 +927,11 @@ def calcola_to_score(df_to_analyze):
 
     df_to_score = df_to_analyze.copy()
 
-    df_to_score["Gol_Home_FT"] = pd.to_numeric(df_to_score["Gol_Home_FT"], errors='coerce') # Ho corretto il nome della colonna
-    df_to_score["Gol_Away_FT"] = pd.to_numeric(df_to_score["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
+    df_to_score["Gol_Home_FT"] = pd.to_numeric(df_to_score["Gol_Home_FT"], errors='coerce')
+    df_to_score["Gol_Away_FT"] = pd.to_numeric(df_to_score["Gol_Away_FT"], errors='coerce')
 
-    home_to_score_count = (df_to_score["Gol_Home_FT"] > 0).sum() # Ho corretto il nome della colonna
-    away_to_score_count = (df_to_score["Gol_Away_FT"] > 0).sum() # Ho corretto il nome della colonna
+    home_to_score_count = (df_to_score["Gol_Home_FT"] > 0).sum()
+    away_to_score_count = (df_to_score["Gol_Away_FT"] > 0).sum()
     
     total_matches = len(df_to_score)
     
@@ -953,11 +952,11 @@ def calcola_to_score_ht(df_to_analyze):
 
     df_to_score = df_to_analyze.copy()
 
-    df_to_score["Gol_Home_HT"] = pd.to_numeric(df_to_score["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-    df_to_score["Gol_Away_HT"] = pd.to_numeric(df_to_score["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+    df_to_score["Gol_Home_HT"] = pd.to_numeric(df_to_score["Gol_Home_HT"], errors='coerce')
+    df_to_score["Gol_Away_HT"] = pd.to_numeric(df_to_score["Gol_Away_HT"], errors='coerce')
 
-    home_to_score_count = (df_to_score["Gol_Home_HT"] > 0).sum() # Ho corretto il nome della colonna
-    away_to_score_count = (df_to_score["Gol_Away_HT"] > 0).sum() # Ho corretto il nome della colonna
+    home_to_score_count = (df_to_score["Gol_Home_HT"] > 0).sum()
+    away_to_score_count = (df_to_score["Gol_Away_HT"] > 0).sum()
     
     total_matches = len(df_to_score)
     
@@ -977,10 +976,10 @@ def calcola_btts_ht(df_to_analyze):
         return pd.DataFrame()
 
     df_btts_ht = df_to_analyze.copy()
-    df_btts_ht["Gol_Home_HT"] = pd.to_numeric(df_btts_ht["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-    df_btts_ht["Gol_Away_HT"] = pd.to_numeric(df_btts_ht["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+    df_btts_ht["Gol_Home_HT"] = pd.to_numeric(df_btts_ht["Gol_Home_HT"], errors='coerce')
+    df_btts_ht["Gol_Away_HT"] = pd.to_numeric(df_btts_ht["Gol_Away_HT"], errors='coerce')
     
-    btts_count = ((df_btts_ht["Gol_Home_HT"] > 0) & (df_btts_ht["Gol_Away_HT"] > 0)).sum() # Ho corretto il nome della colonna
+    btts_count = ((df_btts_ht["Gol_Home_HT"] > 0) & (df_btts_ht["Gol_Away_HT"] > 0)).sum()
     no_btts_count = len(df_btts_ht) - btts_count
     
     total_matches = len(df_btts_ht)
@@ -1001,10 +1000,10 @@ def calcola_btts_ft(df_to_analyze):
         return pd.DataFrame()
 
     df_btts_ft = df_to_analyze.copy()
-    df_btts_ft["Gol_Home_FT"] = pd.to_numeric(df_btts_ft["Gol_Home_FT"], errors='coerce') # Ho corretto il nome della colonna
-    df_btts_ft["Gol_Away_FT"] = pd.to_numeric(df_btts_ft["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
+    df_btts_ft["Gol_Home_FT"] = pd.to_numeric(df_btts_ft["Gol_Home_FT"], errors='coerce')
+    df_btts_ft["Gol_Away_FT"] = pd.to_numeric(df_btts_ft["Gol_Away_FT"], errors='coerce')
     
-    btts_count = ((df_btts_ft["Gol_Home_FT"] > 0) & (df_btts_ft["Gol_Away_FT"] > 0)).sum() # Ho corretto il nome della colonna
+    btts_count = ((df_btts_ft["Gol_Home_FT"] > 0) & (df_btts_ft["Gol_Away_FT"] > 0)).sum()
     no_btts_count = len(df_btts_ft) - btts_count
     
     total_matches = len(df_btts_ft)
@@ -1028,14 +1027,14 @@ def calcola_btts_dinamico(df_to_analyze, start_min, risultati_correnti):
     btts_si_count = 0
     
     for _, row in df_to_analyze.iterrows():
-        gol_home_str = str(row.get("Minutaggio_Gol_Home", "")) # Ho corretto il nome della colonna
-        gol_away_str = str(row.get("Minutaggio_gol_Away", "")) # Ho corretto il nome della colonna
+        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
         
         gol_home_before = sum(1 for g in [int(x) for x in gol_home_str.split(";") if x.isdigit()] if g < start_min)
         gol_away_before = sum(1 for g in [int(x) for x in gol_away_str.split(";") if x.isdigit()] if g < start_min)
         
-        gol_home_ft = int(row.get("Gol_Home_FT", 0)) # Ho corretto il nome della colonna
-        gol_away_ft = int(row.get("Gol_Away_FT", 0)) # Ho corretto il nome della colonna
+        gol_home_ft = int(row.get("Gol_Home_FT", 0))
+        gol_away_ft = int(row.get("Gol_Away_FT", 0))
         
         # Logica per BTTS SI dinamico
         btts_si = False
@@ -1063,7 +1062,7 @@ def calcola_btts_dinamico(df_to_analyze, start_min, risultati_correnti):
 
     data = [
         ["BTTS SI (Dinamica)", btts_si_count, round((btts_si_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["BTTS NO (Dinamica)", btts_no_count, round((btts_no_count / total_matches) * 100, 2) if total_matches > 0 else 0]
+        ["BTTS NO (Dinamica)", btts_no_count, round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0]
     ]
 
     df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %"])
@@ -1079,10 +1078,10 @@ def calcola_btts_ht_dinamico(df_to_analyze):
     df_btts_ht_dinamico = df_to_analyze.copy()
     
     # Assicurati che le colonne siano numeriche
-    df_btts_ht_dinamico["Gol_Home_HT"] = pd.to_numeric(df_btts_ht_dinamico["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-    df_btts_ht_dinamico["Gol_Away_HT"] = pd.to_numeric(df_btts_ht_dinamico["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+    df_btts_ht_dinamico["Gol_Home_HT"] = pd.to_numeric(df_btts_ht_dinamico["Gol_Home_HT"], errors='coerce')
+    df_btts_ht_dinamico["Gol_Away_HT"] = pd.to_numeric(df_btts_ht_dinamico["Gol_Away_HT"], errors='coerce')
     
-    btts_count = ((df_btts_ht_dinamico["Gol_Home_HT"] > 0) & (df_btts_ht_dinamico["Gol_Away_HT"] > 0)).sum() # Ho corretto il nome della colonna
+    btts_count = ((df_btts_ht_dinamico["Gol_Home_HT"] > 0) & (df_btts_ht_dinamico["Gol_Away_HT"] > 0)).sum()
     no_btts_count = len(df_btts_ht_dinamico) - btts_count
     
     total_matches = len(df_btts_ht_dinamico)
@@ -1104,11 +1103,11 @@ def calcola_clean_sheet(df_to_analyze):
     
     df_clean_sheet = df_to_analyze.copy()
     
-    df_clean_sheet["Gol_Home_FT"] = pd.to_numeric(df_clean_sheet["Gol_Home_FT"], errors='coerce') # Ho corretto il nome della colonna
-    df_clean_sheet["Gol_Away_FT"] = pd.to_numeric(df_clean_sheet["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
+    df_clean_sheet["Gol_Home_FT"] = pd.to_numeric(df_clean_sheet["Gol_Home_FT"], errors='coerce')
+    df_clean_sheet["Gol_Away_FT"] = pd.to_numeric(df_clean_sheet["Gol_Away_FT"], errors='coerce')
     
-    home_clean_sheet_count = (df_clean_sheet["Gol_Away_FT"] == 0).sum() # Ho corretto il nome della colonna
-    away_clean_sheet_count = (df_clean_sheet["Gol_Home_FT"] == 0).sum() # Ho corretto il nome della colonna
+    home_clean_sheet_count = (df_clean_sheet["Gol_Away_FT"] == 0).sum()
+    away_clean_sheet_count = (df_clean_sheet["Gol_Home_FT"] == 0).sum()
     
     total_matches = len(df_clean_sheet)
     
@@ -1129,19 +1128,19 @@ def calcola_combo_stats(df_to_analyze):
         
     df_combo = df_to_analyze.copy()
 
-    df_combo["Gol_Home_FT"] = pd.to_numeric(df_combo["Gol_Home_FT"], errors='coerce') # Ho corretto il nome della colonna
-    df_combo["Gol_Away_FT"] = pd.to_numeric(df_combo["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
+    df_combo["Gol_Home_FT"] = pd.to_numeric(df_combo["Gol_Home_FT"], errors='coerce')
+    df_combo["Gol_Away_FT"] = pd.to_numeric(df_combo["Gol_Away_FT"], errors='coerce')
     
-    df_combo["tot_goals_ft"] = df_combo["Gol_Home_FT"] + df_combo["Gol_Away_FT"] # Ho corretto il nome della colonna
+    df_combo["tot_goals_ft"] = df_combo["Gol_Home_FT"] + df_combo["Gol_Away_FT"]
     
     # BTTS SI + Over 2.5
-    btts_over_2_5_count = ((df_combo["Gol_Home_FT"] > 0) & (df_combo["Gol_Away_FT"] > 0) & (df_combo["tot_goals_ft"] > 2.5)).sum() # Ho corretto il nome della colonna
+    btts_over_2_5_count = ((df_combo["Gol_Home_FT"] > 0) & (df_combo["Gol_Away_FT"] > 0) & (df_combo["tot_goals_ft"] > 2.5)).sum()
     
     # Home Win + Over 2.5
-    home_win_over_2_5_count = ((df_combo["Gol_Home_FT"] > df_combo["Gol_Away_FT"]) & (df_combo["tot_goals_ft"] > 2.5)).sum() # Ho corretto il nome della colonna
+    home_win_over_2_5_count = ((df_combo["Gol_Home_FT"] > df_combo["Gol_Away_FT"]) & (df_combo["tot_goals_ft"] > 2.5)).sum()
     
     # Away Win + Over 2.5
-    away_win_over_2_5_count = ((df_combo["Gol_Away_FT"] > df_combo["Gol_Home_FT"]) & (df_combo["tot_goals_ft"] > 2.5)).sum() # Ho corretto il nome della colonna
+    away_win_over_2_5_count = ((df_combo["Gol_Away_FT"] > df_combo["Gol_Home_FT"]) & (df_combo["tot_goals_ft"] > 2.5)).sum()
     
     total_matches = len(df_combo)
     
@@ -1186,7 +1185,7 @@ def calcola_multi_gol(df_to_analyze, col_gol, titolo):
 # SEZIONE 1: Analisi Timeband per Campionato
 st.subheader("1. Analisi Timeband per Campionato")
 if selected_league != "Tutte":
-    df_league_only = df[df["League"] == selected_league] # Ho corretto il nome della colonna
+    df_league_only = df[df["League"] == selected_league]
     st.write(f"Analisi basata su **{len(df_league_only)}** partite del campionato **{selected_league}**.")
     st.write("---")
     col1, col2 = st.columns(2)
@@ -1224,17 +1223,17 @@ if not filtered_df.empty:
     st.subheader("Media Gol (Pre-Match)")
     df_prematch_goals = filtered_df.copy()
     
-    df_prematch_goals["Gol_Home_HT"] = pd.to_numeric(df_prematch_goals["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-    df_prematch_goals["Gol_Away_HT"] = pd.to_numeric(df_prematch_goals["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
-    df_prematch_goals["Gol_Home_FT"] = pd.to_numeric(df_prematch_goals["Gol_Home_FT"], errors='coerce') # Ho corretto il nome della colonna
-    df_prematch_goals["Gol_Away_FT"] = pd.to_numeric(df_prematch_goals["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
+    df_prematch_goals["Gol_Home_HT"] = pd.to_numeric(df_prematch_goals["Gol_Home_HT"], errors='coerce')
+    df_prematch_goals["Gol_Away_HT"] = pd.to_numeric(df_prematch_goals["Gol_Away_HT"], errors='coerce')
+    df_prematch_goals["Gol_Home_FT"] = pd.to_numeric(df_prematch_goals["Gol_Home_FT"], errors='coerce')
+    df_prematch_goals["Gol_Away_FT"] = pd.to_numeric(df_prematch_goals["Gol_Away_FT"], errors='coerce')
     
     # Media gol HT
-    avg_ht_goals = (df_prematch_goals["Gol_Home_HT"] + df_prematch_goals["Gol_Away_HT"]).mean() # Ho corretto il nome della colonna
+    avg_ht_goals = (df_prematch_goals["Gol_Home_HT"] + df_prematch_goals["Gol_Away_HT"]).mean()
     # Media gol FT
-    avg_ft_goals = (df_prematch_goals["Gol_Home_FT"] + df_prematch_goals["Gol_Away_FT"]).mean() # Ho corretto il nome della colonna
+    avg_ft_goals = (df_prematch_goals["Gol_Home_FT"] + df_prematch_goals["Gol_Away_FT"]).mean()
     # Media gol SH (secondo tempo)
-    avg_sh_goals = (df_prematch_goals["Gol_Home_FT"] + df_prematch_goals["Gol_Away_FT"] - df_prematch_goals["Gol_Home_HT"] - df_prematch_goals["Gol_Away_HT"]).mean() # Ho corretto il nome della colonna
+    avg_sh_goals = (df_prematch_goals["Gol_Home_FT"] + df_prematch_goals["Gol_Away_FT"] - df_prematch_goals["Gol_Home_HT"] - df_prematch_goals["Gol_Away_HT"]).mean()
     
     st.table(pd.DataFrame({
         "Periodo": ["HT", "FT", "SH"],
@@ -1251,7 +1250,7 @@ if not filtered_df.empty:
         st.subheader(f"Over Goals HT ({len(filtered_df)})")
         over_ht_data = []
         df_prematch_ht = filtered_df.copy()
-        df_prematch_ht["tot_goals_ht"] = pd.to_numeric(df_prematch_ht["Gol_Home_HT"], errors='coerce') + pd.to_numeric(df_prematch_ht["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+        df_prematch_ht["tot_goals_ht"] = pd.to_numeric(df_prematch_ht["Gol_Home_HT"], errors='coerce') + pd.to_numeric(df_prematch_ht["Gol_Away_HT"], errors='coerce')
         for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
             count = (df_prematch_ht["tot_goals_ht"] > t).sum()
             perc = round((count / len(df_prematch_ht)) * 100, 2)
@@ -1294,8 +1293,8 @@ if not filtered_df.empty:
     with st.expander("Mostra Statistiche SH (Secondo Tempo)"):
         st.write(f"Analisi basata su **{len(filtered_df)}** partite.")
         df_sh = filtered_df.copy()
-        df_sh["gol_home_sh"] = pd.to_numeric(df_sh["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_sh["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-        df_sh["gol_away_sh"] = pd.to_numeric(df_sh["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_sh["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
+        df_sh["gol_home_sh"] = pd.to_numeric(df_sh["Gol_Home_FT"], errors='coerce') - pd.to_numeric(df_sh["Gol_Home_HT"], errors='coerce')
+        df_sh["gol_away_sh"] = pd.to_numeric(df_sh["Gol_Away_FT"], errors='coerce') - pd.to_numeric(df_sh["Gol_Away_HT"], errors='coerce')
         
         st.subheader(f"WinRate SH ({len(filtered_df)})")
         risultati_sh = {"1 (Casa)": 0, "X (Pareggio)": 0, "2 (Trasferta)": 0}
@@ -1392,7 +1391,7 @@ if not filtered_df.empty:
         st.subheader(f"Over Goals FT ({len(filtered_df)})")
         over_ft_data = []
         df_prematch_ft = filtered_df.copy()
-        df_prematch_ft["tot_goals_ft"] = pd.to_numeric(df_prematch_ft["Gol_Home_FT"], errors='coerce') + pd.to_numeric(df_prematch_ft["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
+        df_prematch_ft["tot_goals_ft"] = pd.to_numeric(df_prematch_ft["Gol_Home_FT"], errors='coerce') + pd.to_numeric(df_prematch_ft["Gol_Away_FT"], errors='coerce')
         for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
             count = (df_prematch_ft["tot_goals_ft"] > t).sum()
             perc = round((count / len(df_prematch_ft)) * 100, 2)
@@ -1413,11 +1412,11 @@ if not filtered_df.empty:
         col1, col2 = st.columns(2)
         with col1:
             st.write("### Casa")
-            styled_df = calcola_multi_gol(filtered_df, "Gol_Home_FT", "Home").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']) # Ho corretto il nome della colonna
+            styled_df = calcola_multi_gol(filtered_df, "Gol_Home_FT", "Home").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df)
         with col2:
             st.write("### Trasferta")
-            styled_df = calcola_multi_gol(filtered_df, "Gol_Away_FT", "Away").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']) # Ho corretto il nome della colonna
+            styled_df = calcola_multi_gol(filtered_df, "Gol_Away_FT", "Away").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df)
         st.subheader(f"First to Score (Pre-Match) ({len(filtered_df)})")
         styled_df = calcola_first_to_score(filtered_df).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
@@ -1485,8 +1484,8 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
 
         partite_target = []
         for _, row in filtered_df.iterrows():
-            gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()] # Ho corretto il nome della colonna
-            gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()] # Ho corretto il nome della colonna
+            gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
+            gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
             home_fino = sum(1 for g in gol_home if g < start_min)
             away_fino = sum(1 for g in gol_away if g < start_min)
             risultato_fino = f"{home_fino}-{away_fino}"
@@ -1503,17 +1502,17 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             st.subheader("Media Gol (Dinamica)")
             df_target_goals = df_target.copy()
             
-            df_target_goals["Gol_Home_HT"] = pd.to_numeric(df_target_goals["Gol_Home_HT"], errors='coerce') # Ho corretto il nome della colonna
-            df_target_goals["Gol_Away_HT"] = pd.to_numeric(df_target_goals["Gol_Away_HT"], errors='coerce') # Ho corretto il nome della colonna
-            df_target_goals["Gol_Home_FT"] = pd.to_numeric(df_target_goals["Gol_Home_FT"], errors='coerce') # Ho corretto il nome della colonna
-            df_target_goals["Gol_Away_FT"] = pd.to_numeric(df_target_goals["Gol_Away_FT"], errors='coerce') # Ho corretto il nome della colonna
+            df_target_goals["Gol_Home_HT"] = pd.to_numeric(df_target_goals["Gol_Home_HT"], errors='coerce')
+            df_target_goals["Gol_Away_HT"] = pd.to_numeric(df_target_goals["Gol_Away_HT"], errors='coerce')
+            df_target_goals["Gol_Home_FT"] = pd.to_numeric(df_target_goals["Gol_Home_FT"], errors='coerce')
+            df_target_goals["Gol_Away_FT"] = pd.to_numeric(df_target_goals["Gol_Away_FT"], errors='coerce')
             
             # Media gol HT
-            avg_ht_goals_dynamic = (df_target_goals["Gol_Home_HT"] + df_target_goals["Gol_Away_HT"]).mean() # Ho corretto il nome della colonna
+            avg_ht_goals_dynamic = (df_target_goals["Gol_Home_HT"] + df_target_goals["Gol_Away_HT"]).mean()
             # Media gol FT
-            avg_ft_goals_dynamic = (df_target_goals["Gol_Home_FT"] + df_target_goals["Gol_Away_FT"]).mean() # Ho corretto il nome della colonna
+            avg_ft_goals_dynamic = (df_target_goals["Gol_Home_FT"] + df_target_goals["Gol_Away_FT"]).mean()
             # Media gol SH (secondo tempo)
-            avg_sh_goals_dynamic = (df_target_goals["Gol_Home_FT"] + df_target_goals["Gol_Away_FT"] - df_target_goals["Gol_Home_HT"] - df_target_goals["Gol_Away_HT"]).mean() # Ho corretto il nome della colonna
+            avg_sh_goals_dynamic = (df_target_goals["Gol_Home_FT"] + df_target_goals["Gol_Away_FT"] - df_target_goals["Gol_Home_HT"] - df_target_goals["Gol_Away_HT"]).mean()
             
             st.table(pd.DataFrame({
                 "Periodo": ["HT", "FT", "SH"],
@@ -1536,8 +1535,8 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             
             # Over Goals HT e FT
             col1, col2 = st.columns(2)
-            df_target_goals["tot_goals_ht"] = df_target_goals["Gol_Home_HT"] + df_target_goals["Gol_Away_HT"] # Ho corretto il nome della colonna
-            df_target_goals["tot_goals_ft"] = df_target_goals["Gol_Home_FT"] + df_target_goals["Gol_Away_FT"] # Ho corretto il nome della colonna
+            df_target_goals["tot_goals_ht"] = df_target_goals["Gol_Home_HT"] + df_target_goals["Gol_Away_HT"]
+            df_target_goals["tot_goals_ft"] = df_target_goals["Gol_Home_FT"] + df_target_goals["Gol_Away_FT"]
             
             with col1:
                 st.subheader(f"Over Goals HT (Dinamica) ({len(df_target)})")
@@ -1596,11 +1595,11 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             col1, col2 = st.columns(2)
             with col1:
                 st.write("### Casa")
-                styled_df = calcola_multi_gol(df_target, "Gol_Home_FT", "Home").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']) # Ho corretto il nome della colonna
+                styled_df = calcola_multi_gol(df_target, "Gol_Home_FT", "Home").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
             with col2:
                 st.write("### Trasferta")
-                styled_df = calcola_multi_gol(df_target, "Gol_Away_FT", "Away").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']) # Ho corretto il nome della colonna
+                styled_df = calcola_multi_gol(df_target, "Gol_Away_FT", "Away").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
             
             # First to Score nell'analisi dinamica (HT e FT)
@@ -1682,7 +1681,6 @@ st.subheader("5. Analisi Head-to-Head (H2H)")
 st.write("Seleziona due squadre per analizzare i loro scontri diretti.")
 
 # Recupera l'elenco completo di tutte le squadre disponibili nel dataset
-# Ho corretto i nomi delle colonne
 all_teams = sorted(list(set(df['Home_Team'].dropna().unique()) | set(df['Away_Team'].dropna().unique())))
 h2h_home_team = st.selectbox("Seleziona Squadra 1", ["Seleziona..."] + all_teams)
 h2h_away_team = st.selectbox("Seleziona Squadra 2", ["Seleziona..."] + all_teams)
@@ -1693,7 +1691,6 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
     else:
         # Filtra il DataFrame per trovare tutti i match tra le due squadre selezionate
         # NOTA: I filtri per le quote della sidebar non vengono applicati qui per avere il dataset H2H completo
-        # Ho corretto i nomi delle colonne
         h2h_df = df[((df['Home_Team'] == h2h_home_team) & (df['Away_Team'] == h2h_away_team)) |
                     ((df['Home_Team'] == h2h_away_team) & (df['Away_Team'] == h2h_home_team))]
         
@@ -1708,7 +1705,6 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
             # Media gol
             st.subheader("Media Gol (H2H)")
             df_h2h_goals = h2h_df.copy()
-            # Ho corretto i nomi delle colonne
             df_h2h_goals["Gol_Home_HT"] = pd.to_numeric(df_h2h_goals["Gol_Home_HT"], errors='coerce')
             df_h2h_goals["Gol_Away_HT"] = pd.to_numeric(df_h2h_goals["Gol_Away_HT"], errors='coerce')
             df_h2h_goals["Gol_Home_FT"] = pd.to_numeric(df_h2h_goals["Gol_Home_FT"], errors='coerce')
@@ -1755,7 +1751,6 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
 
             # Over Goals H2H
             col1, col2 = st.columns(2)
-            # Ho corretto i nomi delle colonne
             df_h2h_goals["tot_goals_ht"] = pd.to_numeric(df_h2h_goals["Gol_Home_HT"], errors='coerce') + pd.to_numeric(df_h2h_goals["Gol_Away_HT"], errors='coerce')
             df_h2h_goals["tot_goals_ft"] = pd.to_numeric(df_h2h_goals["Gol_Home_FT"], errors='coerce') + pd.to_numeric(df_h2h_goals["Gol_Away_FT"], errors='coerce')
 
@@ -1802,11 +1797,11 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
             col1, col2 = st.columns(2)
             with col1:
                 st.write("### Casa")
-                styled_df = calcola_multi_gol(h2h_df, "Gol_Home_FT", "Home").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']) # Ho corretto il nome della colonna
+                styled_df = calcola_multi_gol(h2h_df, "Gol_Home_FT", "Home").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
             with col2:
                 st.write("### Trasferta")
-                styled_df = calcola_multi_gol(h2h_df, "Gol_Away_FT", "Away").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']) # Ho corretto il nome della colonna
+                styled_df = calcola_multi_gol(h2h_df, "Gol_Away_FT", "Away").style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
 
             # First to Score H2H
@@ -1869,17 +1864,17 @@ with st.expander("Configura e avvia il Backtest"):
             
             # Definizione dei mercati e delle colonne necessarie
             market_map = {
-                "1 (Casa)": ("Odd_Home", lambda row: row["Gol_Home_FT"] > row["Gol_Away_FT"]), # Ho corretto i nomi delle colonne
-                "X (Pareggio)": ("Odd_Draw", lambda row: row["Gol_Home_FT"] == row["Gol_Away_FT"]), # Ho corretto i nomi delle colonne
-                "2 (Trasferta)": ("Odd__Away", lambda row: row["Gol_Home_FT"] < row["Gol_Away_FT"]), # Ho corretto i nomi delle colonne
-                "Over 2.5 FT": ("Odd_over_2.5", lambda row: (row["Gol_Home_FT"] + row["Gol_Away_FT"]) > 2.5), # Ho corretto i nomi delle colonne
-                "BTTS SI FT": ("BTTS_SI", lambda row: (row["Gol_Home_FT"] > 0 and row["Gol_Away_FT"] > 0)) # Ho corretto i nomi delle colonne
+                "1 (Casa)": ("Odd_Home", lambda row: row["Gol_Home_FT"] > row["Gol_Away_FT"]),
+                "X (Pareggio)": ("Odd_Draw", lambda row: row["Gol_Home_FT"] == row["Gol_Away_FT"]),
+                "2 (Trasferta)": ("Odd__Away", lambda row: row["Gol_Home_FT"] < row["Gol_Away_FT"]),
+                "Over 2.5 FT": ("Odd_over_2.5", lambda row: (row["Gol_Home_FT"] + row["Gol_Away_FT"]) > 2.5),
+                "BTTS SI FT": ("BTTS_SI", lambda row: (row["Gol_Home_FT"] > 0 and row["Gol_Away_FT"] > 0))
             }
             
             odd_col, win_condition = market_map[market]
             
             # Controllo che le colonne necessarie esistano nel DataFrame
-            required_cols = [odd_col, "risultato_ft", "Gol_Home_FT", "Gol_Away_FT"] # Ho corretto i nomi delle colonne
+            required_cols = [odd_col, "risultato_ft", "Gol_Home_FT", "Gol_Away_FT"]
             for col in required_cols:
                 if col not in df_to_analyze.columns:
                     st.warning(f"Impossibile eseguire il backtest: la colonna '{col}' non è presente nel dataset.")
@@ -1895,8 +1890,8 @@ with st.expander("Configura e avvia il Backtest"):
             
             # Assicurati che le colonne quote e gol siano numeriche
             df_clean[odd_col] = pd.to_numeric(df_clean[odd_col].astype(str).str.replace(",", "."), errors='coerce').fillna(0)
-            df_clean["Gol_Home_FT"] = pd.to_numeric(df_clean["Gol_Home_FT"], errors='coerce').fillna(0) # Ho corretto il nome della colonna
-            df_clean["Gol_Away_FT"] = pd.to_numeric(df_clean["Gol_Away_FT"], errors='coerce').fillna(0) # Ho corretto il nome della colonna
+            df_clean["Gol_Home_FT"] = pd.to_numeric(df_clean["Gol_Home_FT"], errors='coerce').fillna(0)
+            df_clean["Gol_Away_FT"] = pd.to_numeric(df_clean["Gol_Away_FT"], errors='coerce').fillna(0)
 
             for _, row in df_clean.iterrows():
                 try:
