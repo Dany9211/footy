@@ -452,7 +452,7 @@ def calcola_first_to_score_outcome(df_to_analyze):
     return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
 
 # --- Nuova funzione per analizzare l'esito del secondo gol dopo il primo ---
-def calcola_first_to_score_next_goal_outcome(df_to_analyze):
+def calcola_first_to_score_next_gol_outcome(df_to_analyze):
     if df_to_analyze.empty:
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
@@ -486,11 +486,11 @@ def calcola_first_to_score_next_goal_outcome(df_to_analyze):
         # Ordina tutti i gol per minuto
         all_goals.sort()
         
-        first_goal = all_goals[0]
-        second_goal = all_goals[1]
+        first_gol = all_goals[0]
+        second_gol = all_goals[1]
         
-        first_scorer = first_goal[1]
-        second_scorer = second_goal[1]
+        first_scorer = first_gol[1]
+        second_scorer = second_gol[1]
         
         if first_scorer == 'home':
             if second_scorer == 'home':
@@ -624,15 +624,15 @@ def calcola_first_to_score_sh(df_to_analyze):
         gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit() and int(x) > 45]
         gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit() and int(x) > 45]
 
-        min_home_goal = min(gol_home) if gol_home else float('inf')
-        min_away_goal = min(gol_away) if gol_away else float('inf')
+        min_home_gol = min(gol_home) if gol_home else float('inf')
+        min_away_gol = min(gol_away) if gol_away else float('inf')
         
-        if min_home_goal < min_away_goal:
+        if min_home_gol < min_away_gol:
             risultati["Home Team"] += 1
-        elif min_away_goal < min_home_goal:
+        elif min_away_gol < min_home_gol:
             risultati["Away Team"] += 1
         else:
-            if min_home_goal == float('inf'):
+            if min_home_gol == float('inf'):
                 risultati["No Goals SH"] += 1
 
     stats = []
@@ -664,18 +664,18 @@ def calcola_first_to_score_outcome_sh(df_to_analyze):
         gol_home_sh = [int(x) for x in gol_home_str.split(";") if x.isdigit() and int(x) > 45]
         gol_away_sh = [int(x) for x in gol_away_str.split(";") if x.isdigit() and int(x) > 45]
 
-        min_home_goal = min(gol_home_sh) if gol_home_sh else float('inf')
-        min_away_goal = min(gol_away_sh) if gol_away_sh else float('inf')
+        min_home_gol = min(gol_home_sh) if gol_home_sh else float('inf')
+        min_away_gol = min(gol_away_sh) if gol_away_sh else float('inf')
         
         home_vince = row["Gol_Home_FT"] > row["Gol_Away_FT"]
         away_vince = row["Gol_Away_FT"] > row["Gol_Home_FT"]
         
-        if min_home_goal < min_away_goal:
+        if min_home_gol < min_away_gol:
             if home_vince:
                 risultati["Casa Segna Primo SH e Vince"] += 1
             else:
                 risultati["Casa Segna Primo SH e Non Vince"] += 1
-        elif min_away_goal < min_home_goal:
+        elif min_away_gol < min_home_gol:
             if away_vince:
                 risultati["Trasferta Segna Prima SH e Vince"] += 1
             else:
@@ -691,7 +691,7 @@ def calcola_first_to_score_outcome_sh(df_to_analyze):
     
     return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
 
-def calcola_first_to_score_next_goal_outcome_sh(df_to_analyze):
+def calcola_first_to_score_next_gol_outcome_sh(df_to_analyze):
     if df_to_analyze.empty:
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
@@ -724,11 +724,11 @@ def calcola_first_to_score_next_goal_outcome_sh(df_to_analyze):
             
         all_goals.sort()
         
-        first_goal = all_goals[0]
-        second_goal = all_goals[1]
+        first_gol = all_goals[0]
+        second_gol = all_goals[1]
         
-        first_scorer = first_goal[1]
-        second_scorer = second_goal[1]
+        first_scorer = first_gol[1]
+        second_scorer = second_gol[1]
         
         if first_scorer == 'home':
             if second_scorer == 'home':
@@ -876,15 +876,15 @@ def calcola_first_to_score(df_to_analyze):
         gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit()]
         gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit()]
 
-        min_home_goal = min(gol_home) if gol_home else float('inf')
-        min_away_goal = min(gol_away) if gol_away else float('inf')
+        min_home_gol = min(gol_home) if gol_home else float('inf')
+        min_away_gol = min(gol_away) if gol_away else float('inf')
         
-        if min_home_goal < min_away_goal:
+        if min_home_gol < min_away_gol:
             risultati["Home Team"] += 1
-        elif min_away_goal < min_home_goal:
+        elif min_away_gol < min_home_gol:
             risultati["Away Team"] += 1
         else:
-            if min_home_goal == float('inf'):
+            if min_home_gol == float('inf'):
                 risultati["No Goals"] += 1
 
     stats = []
@@ -911,15 +911,15 @@ def calcola_first_to_score_ht(df_to_analyze):
         gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit() and int(x) <= 45]
         gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit() and int(x) <= 45]
 
-        min_home_goal = min(gol_home) if gol_home else float('inf')
-        min_away_goal = min(gol_away) if gol_away else float('inf')
+        min_home_gol = min(gol_home) if gol_home else float('inf')
+        min_away_gol = min(gol_away) if gol_away else float('inf')
         
-        if min_home_goal < min_away_goal:
+        if min_home_gol < min_away_gol:
             risultati["Home Team"] += 1
-        elif min_away_goal < min_home_goal:
+        elif min_away_gol < min_home_gol:
             risultati["Away Team"] += 1
         else:
-            if min_home_goal == float('inf'):
+            if min_home_gol == float('inf'):
                 risultati["No Goals"] += 1
 
     stats = []
@@ -1053,8 +1053,8 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
     styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
     st.dataframe(styled_df)
 
-# --- FUNZIONE NEXT GOAL ---
-def calcola_next_goal(df_to_analyze, start_min, end_min):
+# --- FUNZIONE NEXT GOL ---
+def calcola_next_gol(df_to_analyze, start_min, end_min):
     if df_to_analyze.empty:
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
@@ -1068,15 +1068,15 @@ def calcola_next_goal(df_to_analyze, start_min, end_min):
         gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit()]
         gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit()]
 
-        next_home_goal = min([g for g in gol_home if start_min <= g <= end_min] or [float('inf')])
-        next_away_goal = min([g for g in gol_away if start_min <= g <= end_min] or [float('inf')])
+        next_home_gol = min([g for g in gol_home if start_min <= g <= end_min] or [float('inf')])
+        next_away_gol = min([g for g in gol_away if start_min <= g <= end_min] or [float('inf')])
         
-        if next_home_goal < next_away_goal:
+        if next_home_gol < next_away_gol:
             risultati["Prossimo Gol: Home"] += 1
-        elif next_away_goal < next_home_goal: # Correzione qui
+        elif next_away_gol < next_home_gol: # Correzione qui
             risultati["Prossimo Gol: Away"] += 1
         else:
-            if next_home_goal == float('inf'):
+            if next_home_gol == float('inf'):
                 risultati["Nessun prossimo gol"] += 1
 
     stats = []
@@ -1366,10 +1366,10 @@ def calcola_multi_gol(df_to_analyze, col_gol, titolo):
     df_stats = pd.DataFrame(data, columns=[f"Mercato ({titolo})", "Conteggio", "Percentuale %", "Odd Minima"])
     return df_stats
 
-# --- NUOVA FUNZIONE PER CALCOLARE LA PROBABILITÀ DEL PROSSIMO GOL CON MODELLO HAZARD ---
+# --- NUOVA FUNZIONE PER CALCOLARE LA PROBABILITÀ DEL PROSSIMO GOL CON MODELLO HAZARD (A 15 MINUTI) ---
 def calcola_probabilita_prossimo_gol_hazard(df_to_analyze, minuto_corrente, risultato_corrente=None):
     """
-    Calcola la probabilità cumulativa di segnare un gol a partire da un
+    Calcola la probabilità di segnare un gol in intervalli di 15 minuti a partire da un
     determinato minuto, utilizzando un modello di rischio (Kaplan-Meier).
 
     Args:
@@ -1379,7 +1379,7 @@ def calcola_probabilita_prossimo_gol_hazard(df_to_analyze, minuto_corrente, risu
                                             Se None, non viene applicato alcun filtro sul risultato.
 
     Returns:
-        pd.DataFrame: Un DataFrame con la probabilità di un gol nel tempo.
+        pd.DataFrame: Un DataFrame con la probabilità di un gol per ogni timeframe di 15 minuti.
     """
     if df_to_analyze.empty:
         return pd.DataFrame()
@@ -1387,7 +1387,7 @@ def calcola_probabilita_prossimo_gol_hazard(df_to_analyze, minuto_corrente, risu
     df_temp = df_to_analyze.copy()
 
     # Filtra per risultato corrente se specificato
-    if risultato_corrente:
+    if risultato_corrente and risultato_corrente != "Tutti i risultati":
         partite_con_risultato = []
         for _, row in df_temp.iterrows():
             gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
@@ -1410,19 +1410,19 @@ def calcola_probabilita_prossimo_gol_hazard(df_to_analyze, minuto_corrente, risu
         all_goals_times = sorted(gol_home + gol_away)
 
         # Considera solo i gol che si verificano dopo il minuto corrente
-        all_goals_times = [t for t in all_goals_times if t >= minuto_corrente]
+        all_goals_times_after_current_minute = [t for t in all_goals_times if t >= minuto_corrente]
 
-        if not all_goals_times:
-            # Nessun gol dopo il minuto corrente, il tempo di "sopravvivenza" è fino a 90 minuti
-            tempi_tra_gol.append(90 - minuto_corrente)
+        if not all_goals_times_after_current_minute:
+            # Nessun gol dopo il minuto corrente, il tempo di "sopravvivenza" è fino a 90 minuti (o più se si considera il 90+)
+            tempi_tra_gol.append(max(0, 90 - minuto_corrente)) # Assicurati che non sia negativo
         else:
-            last_time = minuto_corrente
-            for t in all_goals_times:
-                # Registra l'intervallo tra i gol
-                tempi_tra_gol.append(t - last_time)
-                last_time = t
+            last_event_time = minuto_corrente
+            for t in all_goals_times_after_current_minute:
+                # Registra l'intervallo tra gli eventi (gol)
+                tempi_tra_gol.append(t - last_event_time)
+                last_event_time = t
             # Registra anche l'intervallo dall'ultimo gol alla fine della partita (censored)
-            tempi_tra_gol.append(90 - last_time)
+            tempi_tra_gol.append(max(0, 90 - last_event_time)) # Assicurati che non sia negativo
     
     # DataFrame per il modello di rischio
     df_tempi = pd.DataFrame({'time_to_event': tempi_tra_gol})
@@ -1436,41 +1436,48 @@ def calcola_probabilita_prossimo_gol_hazard(df_to_analyze, minuto_corrente, risu
     kmf = KaplanMeierFitter()
     kmf.fit(df_tempi['time_to_event'])
 
-    # Calcola la probabilità di un gol tra il minuto corrente e la fine
-    df_probabilita = pd.DataFrame()
+    all_intervalli = [(0, 15), (16, 30), (31, 45), (46, 60), (61, 75), (76, 90), (91, 150)]
+    all_label_intervalli = ["0-15", "16-30", "31-45", "46-60", "61-75", "76-90", "90+"]
+
+    risultati_bands = []
     
-    # Genera i minuti da minuto_corrente a 90
-    minutes_for_prediction = list(range(minuto_corrente, 91))
-    
-    probabilities = []
-    for minute_abs in minutes_for_prediction:
-        # Calcola il tempo relativo dall'inizio della previsione
-        time_relative = minute_abs - minuto_corrente
-        if time_relative < 0: # Dovrebbe essere sempre >= 0
-            probabilities.append(0)
+    for (start_interval_abs, end_interval_abs), label in zip(all_intervalli, all_label_intervalli):
+        # Solo gli intervalli che iniziano o si sovrappongono al minuto corrente sono rilevanti
+        if end_interval_abs < minuto_corrente:
             continue
+
+        # Calcola l'inizio effettivo dell'intervallo per la previsione
+        effective_start_abs = max(start_interval_abs, minuto_corrente)
         
-        # Probabilità di sopravvivenza (nessun evento) fino a questo punto relativo
-        s_t = kmf.survival_function_.loc[time_relative].iloc[0] if time_relative in kmf.survival_function_.index else \
-              (kmf.survival_function_.loc[kmf.survival_function_.index.max()].iloc[0] if time_relative > kmf.survival_function_.index.max() else 1.0)
+        # Calcola i tempi relativi per la funzione di sopravvivenza
+        time_relative_start = effective_start_abs - minuto_corrente
+        time_relative_end = end_interval_abs - minuto_corrente
+
+        # Assicurati che i tempi relativi siano non negativi
+        if time_relative_start < 0: time_relative_start = 0
+        if time_relative_end < 0: time_relative_end = 0 
+
+        # Ottieni le probabilità di sopravvivenza (S(t) = P(T > t))
+        # Gestisci i casi in cui il tempo relativo potrebbe essere fuori dal range del modello
+        s_at_start = kmf.survival_function_.loc[time_relative_start].iloc[0] if time_relative_start in kmf.survival_function_.index else \
+                     (kmf.survival_function_.loc[kmf.survival_function_.index.max()].iloc[0] if time_relative_start > kmf.survival_function_.index.max() else 1.0)
         
-        # Probabilità di sopravvivenza (nessun evento) fino al punto relativo successivo
-        s_t_plus_1 = kmf.survival_function_.loc[time_relative + 1].iloc[0] if (time_relative + 1) in kmf.survival_function_.index else \
-                     (kmf.survival_function_.loc[kmf.survival_function_.index.max()].iloc[0] if (time_relative + 1) > kmf.survival_function_.index.max() else 0.0)
-        
-        # Evita divisione per zero
-        if s_t == 0:
-            prob_gol_in_minuto = 0
+        s_at_end = kmf.survival_function_.loc[time_relative_end].iloc[0] if time_relative_end in kmf.survival_function_.index else \
+                   (kmf.survival_function_.loc[kmf.survival_function_.index.max()].iloc[0] if time_relative_end > kmf.survival_function_.index.max() else 0.0)
+
+        # Probabilità di un gol all'interno di questa banda, dato che non ci sono stati gol fino a 'effective_start_abs'
+        if s_at_start == 0:
+            prob_in_band = 0.0
         else:
-            # Probabilità condizionale che un gol si verifichi nel prossimo minuto, dato che non si è verificato fino a 'time_relative'
-            prob_gol_in_minuto = (s_t - s_t_plus_1) / s_t
+            prob_in_band = (s_at_start - s_at_end) / s_at_start
         
-        probabilities.append(prob_gol_in_minuto * 100) # In percentuale
-            
-    df_probabilita['Minuto'] = minutes_for_prediction
-    df_probabilita['Probabilita (%)'] = probabilities
-    
-    return df_probabilita
+        risultati_bands.append([label, prob_in_band * 100]) # In percentuale
+
+    if not risultati_bands:
+        return pd.DataFrame()
+
+    df_result = pd.DataFrame(risultati_bands, columns=["Timeframe", "Probabilita (%)"])
+    return df_result
 
 
 # SEZIONE 1: Analisi Timeband per Campionato
@@ -1621,7 +1628,7 @@ if not filtered_df.empty:
         no_btts_sh_count = len(df_sh) - btts_sh_count
         btts_sh_data = [
             ["BTTS SI SH", btts_sh_count, round((btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0],
-            ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0]
+            ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_matches) * 100, 2) if total_sh_matches > 0 else 0]
         ]
         df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %"])
         df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
@@ -1642,7 +1649,7 @@ if not filtered_df.empty:
         st.dataframe(styled_df)
 
         st.subheader(f"First to Score + Risultato Prossimo Gol SH ({len(filtered_df)})")
-        styled_df = calcola_first_to_score_next_goal_outcome_sh(filtered_df).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+        styled_df = calcola_first_to_score_next_gol_outcome_sh(filtered_df).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df)
 
         st.subheader(f"To Score SH ({len(filtered_df)})")
@@ -1713,7 +1720,7 @@ if not filtered_df.empty:
         styled_df = calcola_first_to_score_outcome(filtered_df).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df)
         st.subheader(f"First to Score + Risultato Prossimo Gol (Pre-Match) ({len(filtered_df)})")
-        styled_df = calcola_first_to_score_next_goal_outcome(filtered_df).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+        styled_df = calcola_first_to_score_next_gol_outcome(filtered_df).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df)
         st.subheader(f"To Score (Pre-Match) ({len(filtered_df)})")
         styled_df = calcola_to_score(filtered_df).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
@@ -1754,14 +1761,15 @@ if not filtered_df.empty:
 
     # --- NUOVA SEZIONE: Previsione Probabilità Prossimo Gol (Modello di Rischio PRE-MATCH) ---
     st.markdown("---")
-    st.subheader("Previsione Probabilità Prossimo Gol (Modello di Rischio Pre-Match)")
-    st.info("Questa analisi calcola la probabilità di un gol in ogni minuto, basandosi su tutte le partite filtrate, senza considerare un risultato corrente specifico.")
+    st.subheader("Previsione Probabilità Prossimo Gol (Modello di Rischio Pre-Match - Timeframe 15min)")
+    st.info("Questa analisi calcola la probabilità di un gol in ogni timeframe di 15 minuti, basandosi su tutte le partite filtrate, senza considerare un risultato corrente specifico.")
     
     start_time_prediction_prematch = st.slider(
         "Minuto di inizio previsione per il prossimo gol (Pre-Match)", 
         min_value=1, 
         max_value=90, 
-        value=1 # Inizia dal minuto 1 per pre-match
+        value=1, # Inizia dal minuto 1 per pre-match
+        key="hazard_prematch_start_minute"
     )
     
     df_hazard_prediction_prematch = calcola_probabilita_prossimo_gol_hazard(filtered_df, start_time_prediction_prematch)
@@ -1771,7 +1779,7 @@ if not filtered_df.empty:
         df_to_display_hazard_prematch['Odd Minima'] = df_to_display_hazard_prematch['Probabilita (%)'].apply(lambda x: round(100/x, 2) if x > 0 else '-')
     
         st.dataframe(df_to_display_hazard_prematch)
-        st.line_chart(df_hazard_prediction_prematch.set_index('Minuto'))
+        st.line_chart(df_hazard_prediction_prematch.set_index('Timeframe')) # Grafico per timeframe
     else:
         st.info("Nessun dato sufficiente per calcolare il modello di rischio pre-match.")
     # --- FINE NUOVA SEZIONE PRE-MATCH HAZARD ---
@@ -1928,9 +1936,9 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             styled_df = calcola_first_to_score_outcome(df_target).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df)
             
-            # First to Score + Next Goal Dinamica
+            # First to Score + Next Gol Dinamica
             st.subheader(f"First to Score + Risultato Prossimo Gol (Dinamica) ({len(df_target)})")
-            styled_df = calcola_first_to_score_next_goal_outcome(df_target).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            styled_df = calcola_first_to_score_next_gol_outcome(df_target).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df)
             
             # To Score nell'analisi dinamica (HT e FT)
@@ -1954,9 +1962,9 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             styled_df = calcola_combo_stats(df_target).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df)
             
-            # Next Goal nell'analisi dinamica
-            st.subheader(f"Next Goal (Dinamica) ({len(df_target)})")
-            styled_df = calcola_next_goal(df_target, start_min, end_min).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            # Next Gol nell'analisi dinamica
+            st.subheader(f"Next Gol (Dinamica) ({len(df_target)})")
+            styled_df = calcola_next_gol(df_target, start_min, end_min).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df)
             
             # Analisi Rimonte Dinamica
@@ -1983,9 +1991,9 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 st.write("**5min**")
                 mostra_distribuzione_timeband_5min(df_target, min_start_display=start_min) # Passa start_min
 
-            # --- NUOVA SEZIONE: Previsione Probabilità Prossimo Gol (Modello di Rischio) ---
+            # --- NUOVA SEZIONE: Previsione Probabilità Prossimo Gol (Modello di Rischio Dinamico) ---
             st.markdown("---")
-            st.subheader("Previsione Probabilità Prossimo Gol (Modello di Rischio Dinamico)")
+            st.subheader("Previsione Probabilità Prossimo Gol (Modello di Rischio Dinamico - Timeframe 15min)")
             
             # Selezionare il minuto da cui iniziare l'analisi
             start_time_prediction_dynamic = st.slider(
@@ -2021,14 +2029,14 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             
             if not df_hazard_filtered_by_result.empty:
                 st.write(f"Analisi Hazard basata su **{len(df_hazard_filtered_by_result)}** partite con risultato '{selected_current_result_hazard}' al minuto {start_time_prediction_dynamic}.")
-                df_hazard_prediction = calcola_probabilita_prossimo_gol_hazard(df_hazard_filtered_by_result, start_time_prediction_dynamic)
+                df_hazard_prediction = calcola_probabilita_prossimo_gol_hazard(df_hazard_filtered_by_result, start_time_prediction_dynamic, selected_current_result_hazard)
                 
                 if not df_hazard_prediction.empty:
                     df_to_display_hazard = df_hazard_prediction.copy()
                     df_to_display_hazard['Odd Minima'] = df_to_display_hazard['Probabilita (%)'].apply(lambda x: round(100/x, 2) if x > 0 else '-')
                 
                     st.dataframe(df_to_display_hazard)
-                    st.line_chart(df_hazard_prediction.set_index('Minuto'))
+                    st.line_chart(df_hazard_prediction.set_index('Timeframe')) # Grafico per timeframe
                 else:
                     st.info("Nessun dato sufficiente per calcolare il modello di rischio per il prossimo gol con i filtri selezionati.")
             else:
