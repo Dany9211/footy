@@ -140,12 +140,12 @@ else:
     filtered_teams_df = df.copy()
     selected_league = "Tutte"
 
-# Filtro anno
-if "anno" in df.columns:
-    anni = ["Tutti"] + sorted(df["anno"].dropna().unique())
-    selected_anno = st.sidebar.selectbox("Seleziona anno", anni)
-    if selected_anno != "Tutte":
-        filters["anno"] = selected_anno
+# Filtro Anno
+if "Anno" in df.columns:
+    anni = ["Tutti"] + sorted(df["Anno"].dropna().unique())
+    selected_Anno = st.sidebar.selectbox("Seleziona Anno", anni)
+    if selected_Anno != "Tutte":
+        filters["Anno"] = selected_Anno
 
 # Filtro Giornata
 if "Giornata" in df.columns:
@@ -221,16 +221,16 @@ for col, val in filters.items():
 st.subheader("Dati Filtrati")
 st.write(f"**Righe visualizzate:** {len(filtered_df)}")
 
-# --- NUOVA SEZIONE: Riepilogo Risultati per anno ---
+# --- NUOVA SEZIONE: Riepilogo Risultati per Anno ---
 st.markdown("---")
-st.subheader("Riepilogo partite per anno")
-if not filtered_df.empty and "anno" in filtered_df.columns:
-    partite_per_anno = filtered_df["anno"].value_counts().sort_index()
-    riepilogo_df = pd.DataFrame(partite_per_anno).reset_index()
-    riepilogo_df.columns = ["anno", "Partite Trovate"]
+st.subheader("Riepilogo partite per Anno")
+if not filtered_df.empty and "Anno" in filtered_df.columns:
+    partite_per_Anno = filtered_df["Anno"].value_counts().sort_index()
+    riepilogo_df = pd.DataFrame(partite_per_Anno).reset_index()
+    riepilogo_df.columns = ["Anno", "Partite Trovate"]
     st.table(riepilogo_df)
 else:
-    st.info("Nessuna partita trovata o la colonna 'anno' non è disponibile nel dataset.")
+    st.info("Nessuna partita trovata o la colonna 'Anno' non è disponibile nel dataset.")
 st.markdown("---")
 # --- FINE NUOVA SEZIONE ---
 
@@ -1479,7 +1479,7 @@ if not filtered_df.empty:
         if not rimonte_stats.empty:
             styled_df = rimonte_stats.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df)
-            st.markdown("**Squadre che hanno effettuato rimonte:**")
+            st.markdown("**Squadre che hAnno effettuato rimonte:**")
             for tipo, squadre in squadre_rimonte.items():
                 if squadre:
                     st.markdown(f"**{tipo}:** {', '.join(squadre)}")
@@ -1691,7 +1691,7 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 styled_df = rimonte_stats.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
                 
-                st.markdown("**Squadre che hanno effettuato rimonte:**")
+                st.markdown("**Squadre che hAnno effettuato rimonte:**")
                 for tipo, squadre in squadre_rimonte.items():
                     if squadre:
                         st.markdown(f"**{tipo}:** {', '.join(squadre)}")
@@ -1872,7 +1872,7 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
                 styled_df = rimonte_stats.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
                 
-                st.markdown("**Squadre che hanno effettuato rimonte:**")
+                st.markdown("**Squadre che hAnno effettuato rimonte:**")
                 for tipo, squadre in squadre_rimonte.items():
                     if squadre:
                         st.markdown(f"**{tipo}:** {', '.join(squadre)}")
