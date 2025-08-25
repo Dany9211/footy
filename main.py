@@ -233,11 +233,13 @@ else:
 # --- FUNZIONE per filtri range ---
 def add_range_filter(col_name, label=None):
     if col_name in df.columns:
-        col_temp = df[col_name] # Ora dovrebbe essere già numerico
+        # Assicurati che la colonna sia numerica prima di procedere
+        numeric_col_series = convert_to_float(df[col_name])
+        
         # Evita di calcolare min/max su serie completamente NaN
-        if not col_temp.isnull().all():
-            col_min = float(col_temp.min(skipna=True))
-            col_max = float(col_temp.max(skipna=True))
+        if not numeric_col_series.isnull().all():
+            col_min = float(numeric_col_series.min(skipna=True))
+            col_max = float(numeric_col_series.max(skipna=True))
             
             st.sidebar.write(f"Range attuale {label or col_name}: {col_min} - {col_max}")
             min_val = st.sidebar.text_input(f"Min {label or col_name}", value="")
@@ -965,8 +967,11 @@ def calcola_next_goal(df_to_analyze, start_min, end_min):
     total_matches = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
-        gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
-        gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
+        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
+
+        gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit()]
+        gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit()]
 
         next_home_goal = min([g for g in gol_home if start_min <= g <= end_min] or [float('inf')])
         next_away_goal = min([g for g in gol_away if start_min <= g <= end_min] or [float('inf')])
