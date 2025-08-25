@@ -17,9 +17,9 @@ def load_data(uploaded_file):
         # Resetta il puntatore del file per tentativi di lettura multipli
         uploaded_file.seek(0)
         
-        # Strategia 1: Delimitatore ';' e codifica UTF-8, salta righe malformate
+        # Strategia 1: Delimitatore ';', codifica UTF-8, salta righe malformate
         try:
-            df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8', on_bad_lines='skip')
+            df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8', on_bad_lines='skip', header=0)
             # Verifica se il DataFrame è stato letto correttamente (non vuoto e con più di una colonna)
             if not df.empty and len(df.columns) > 1:
                 st.success("File CSV caricato con successo (delimitatore ';', codifica utf-8).")
@@ -29,9 +29,9 @@ def load_data(uploaded_file):
             st.warning(f"Tentativo 1 (';', utf-8) fallito: {e}")
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
 
-        # Strategia 2: Delimitatore ';' e codifica Latin-1, salta righe malformate
+        # Strategia 2: Delimitatore ';', codifica Latin-1, salta righe malformate
         try:
-            df = pd.read_csv(uploaded_file, sep=';', encoding='latin1', on_bad_lines='skip')
+            df = pd.read_csv(uploaded_file, sep=';', encoding='latin1', on_bad_lines='skip', header=0)
             if not df.empty and len(df.columns) > 1:
                 st.success("File CSV caricato con successo (delimitatore ';', codifica latin1).")
                 return df
@@ -40,10 +40,9 @@ def load_data(uploaded_file):
             st.warning(f"Tentativo 2 (';', latin1) fallito: {e}")
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
 
-        # Strategia 3: Delimitatore ',' e codifica UTF-8, usa il motore Python, salta righe malformate
-        # Il motore 'python' è più flessibile con i formati irregolari.
+        # Strategia 3: Delimitatore ',', codifica UTF-8, usa il motore Python, salta righe malformate
         try:
-            df = pd.read_csv(uploaded_file, sep=',', encoding='utf-8', on_bad_lines='skip', engine='python')
+            df = pd.read_csv(uploaded_file, sep=',', encoding='utf-8', on_bad_lines='skip', engine='python', header=0)
             if not df.empty and len(df.columns) > 1:
                 st.success("File CSV caricato con successo (delimitatore ',', codifica utf-8, motore python).")
                 return df
@@ -52,8 +51,19 @@ def load_data(uploaded_file):
             st.warning(f"Tentativo 3 (',', utf-8, python engine) fallito: {e}")
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
 
+        # Strategia 4: Rilevamento automatico del delimitatore, motore Python, salta righe malformate
+        try:
+            df = pd.read_csv(uploaded_file, sep=None, engine='python', on_bad_lines='skip', header=0)
+            if not df.empty and len(df.columns) > 1:
+                st.success("File CSV caricato con successo (delimitatore auto-rilevato, motore python).")
+                return df
+            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+        except Exception as e:
+            st.warning(f"Tentativo 4 (auto-delimitatore, python engine) fallito: {e}")
+            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+
         # Se tutte le strategie falliscono
-        st.error("Impossibile leggere il file CSV con le strategie di parsing automatiche. Controlla il formato del file, il delimitatore (punto e virgola o virgola) e la codifica.")
+        st.error("Impossibile leggere il file CSV con le strategie di parsing automatiche. Controlla attentamente il formato del file, il delimitatore (punto e virgola, virgola o altro) e la codifica.")
         return pd.DataFrame()
     return pd.DataFrame()
 
