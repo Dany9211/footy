@@ -168,7 +168,7 @@ if "League" in df.columns:
 else:
     filtered_teams_df = df.copy()
     selected_league = "Tutte"
-    st.error("Colonna 'League' non trovata. Il filtro per campionato non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'League' non trovata. Il filtro per campionato non sarà disponibile.") # Messaggio di errore in rosso
 
 
 # Filtro Anno
@@ -178,12 +178,12 @@ if "Anno" in df.columns:
     if not df_anni_numeric.empty:
         anni = ["Tutti"] + sorted(df_anni_numeric.unique().astype(int)) # Converti a int per la visualizzazione
         selected_anno = st.sidebar.selectbox("Seleziona Anno", anni)
-        if selected_anno != "Tutte":
+        if selected_anno != "Tutti":
             filters["Anno"] = selected_anno
     else:
         st.sidebar.info("Nessun anno valido trovato nella colonna 'Anno'.")
 else:
-    st.error("Colonna 'Anno' non trovata. Il filtro per anno non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'Anno' non trovata. Il filtro per anno non sarà disponibile.") # Messaggio di errore in rosso
 
 
 # Filtro Giornata
@@ -198,7 +198,7 @@ if "Giornata" in df.columns:
     )
     filters["Giornata"] = giornata_range
 else:
-    st.error("Colonna 'Giornata' non trovata. Il filtro per giornata non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'Giornata' non trovata. Il filtro per giornata non sarà disponibile.") # Messaggio di errore in rosso
 
 
 # --- FILTRI SQUADRE (ora dinamici) ---
@@ -208,7 +208,7 @@ if "Home_Team" in filtered_teams_df.columns:
     if selected_home != "Tutte":
         filters["Home_Team"] = selected_home
 else:
-    st.error("Colonna 'Home_Team' non trovata. Il filtro per squadra home non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'Home_Team' non trovata. Il filtro per squadra home non sarà disponibile.") # Messaggio di errore in rosso
 
 
 if "Away_Team" in filtered_teams_df.columns:
@@ -217,7 +217,7 @@ if "Away_Team" in filtered_teams_df.columns:
     if selected_away != "Tutte":
         filters["Away_Team"] = selected_away
 else:
-    st.error("Colonna 'Away_Team' non trovata. Il filtro per squadra away non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'Away_Team' non trovata. Il filtro per squadra away non sarà disponibile.") # Messaggio di errore in rosso
 
 
 # --- NUOVO FILTRO: Risultato HT ---
@@ -227,7 +227,7 @@ if "risultato_ht" in df.columns:
     if selected_ht_results:
         filters["risultato_ht"] = selected_ht_results
 else:
-    st.error("Colonna 'risultato_ht' non trovata. Il filtro per risultato HT non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'risultato_ht' non trovata. Il filtro per risultato HT non sarà disponibile.") # Messaggio di errore in rosso
 
 
 # --- FUNZIONE per filtri range ---
@@ -289,6 +289,11 @@ for col, val in filters.items():
                 "Odd_Under_1.5", "Odd_Under_2.5", "Odd_Under_3.5", "Odd_Under_4.5", 
                 "BTTS_SI", "Giornata", "Anno"]:
         
+        # Gestione specifica per il caso "Tutti" nel filtro Anno
+        if col == "Anno" and val == "Tutti":
+            # Non applicare alcun filtro per l'anno se è "Tutti"
+            continue
+
         # CRUCIAL: Ensure val is a tuple for range filters
         if not isinstance(val, tuple) or len(val) != 2:
             st.error(f"Errore: il valore del filtro per la colonna '{col}' ({val}) non è un intervallo numerico valido. Ignoro il filtro.") # Messaggio di errore in rosso
@@ -967,7 +972,7 @@ def mostra_distribuzione_timeband(df_to_analyze):
             gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit()]
             if any(start <= g <= end for g in gol_home + gol_away):
                 partite_con_gol += 1
-        perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
+        perc = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
         odd_min = round(100 / perc, 2) if perc > 0 else "-"
         risultati.append([label, partite_con_gol, perc, odd_min])
     df_result = pd.DataFrame(risultati, columns=["Timeframe", "Partite con Gol", "Percentuale %", "Odd Minima"])
@@ -1871,12 +1876,12 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
             with col1:
                 st.subheader(f"WinRate HT H2H ({len(h2h_df)})")
                 df_winrate_ht_h2h = calcola_winrate(h2h_df, "risultato_ht")
-                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df_ht)
             with col2:
                 st.subheader(f"WinRate FT H2H ({len(h2h_df)})")
                 df_winrate_ft_h2h = calcola_winrate(h2h_df, "risultato_ft")
-                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df_ft)
             
             # Doppia Chance H2H
