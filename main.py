@@ -356,13 +356,13 @@ for col, val in filters.items():
             st.error(f"Errore: il valore del filtro per la colonna '{col}' non è una lista come previsto. Ignoro il filtro.")
             continue
     elif col == "Anno": # Gestione specifica per il filtro Anno
+        # Se 'val' è una tupla, significa che è un intervallo di anni (es. "Ultimi 5 anni")
         if isinstance(val, tuple) and len(val) == 2:
-            # Filtro per intervallo di anni (e.g., "Ultimi X anni")
             lower_bound, upper_bound = val
             series_to_filter = pd.to_numeric(filtered_df[col], errors='coerce')
             mask = series_to_filter.between(lower_bound, upper_bound)
             filtered_df = filtered_df[mask.fillna(True)]
-        else: # Filtro per singolo anno (integer)
+        else: # Altrimenti, è un singolo anno selezionato
             filtered_df = filtered_df[filtered_df[col] == val]
     else: # Per i filtri a selezione singola (es. League, Home_Team, Away_Team)
         filtered_df = filtered_df[filtered_df[col] == val]
@@ -2071,4 +2071,3 @@ with st.expander("Configura e avvia il Backtest"):
                 st.metric("Odd Minima per profitto", f"{odd_minima:.2f}")
             elif numero_scommesse == 0:
                 st.info("Nessuna scommessa idonea trovata con i filtri e il mercato selezionati.")
-
