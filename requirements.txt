@@ -1,6 +1,4 @@
 streamlit
 pandas
 numpy
-sqlalchemy
-psycopg2-binary
-matplotlib
+lifelines
