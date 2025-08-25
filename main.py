@@ -178,7 +178,7 @@ if "Anno" in df.columns:
     if not df_anni_numeric.empty:
         anni = ["Tutti"] + sorted(df_anni_numeric.unique().astype(int)) # Converti a int per la visualizzazione
         selected_anno = st.sidebar.selectbox("Seleziona Anno", anni)
-        if selected_anno != "Tutte":
+        if selected_anno != "Tutti":
             filters["Anno"] = selected_anno
     else:
         st.sidebar.info("Nessun anno valido trovato nella colonna 'Anno'.")
@@ -242,13 +242,14 @@ def add_range_filter(col_name, label=None):
             col_max = float(numeric_col_series.max(skipna=True))
             
             st.sidebar.write(f"Range attuale {label or col_name}: {col_min} - {col_max}")
-            min_val = st.sidebar.text_input(f"Min {label or col_name}", value="")
-            max_val = st.sidebar.text_input(f"Max {label or col_name}", value="")
+            # Aggiungi chiavi uniche per gli input di testo
+            min_val_input = st.sidebar.text_input(f"Min {label or col_name}", key=f"min_{col_name}", value="")
+            max_val_input = st.sidebar.text_input(f"Max {label or col_name}", key=f"max_{col_name}", value="")
             
-            if min_val.strip() != "" and max_val.strip() != "":
+            if min_val_input.strip() != "" and max_val_input.strip() != "":
                 try:
                     # Converti a float qui e memorizza come float
-                    filters[col_name] = (float(min_val), float(max_val))
+                    filters[col_name] = (float(min_val_input), float(max_val_input))
                 except ValueError:
                     st.sidebar.warning(f"Valori non validi per {label or col_name}. Inserisci numeri.")
                     # Se i valori non sono validi, assicurati che il filtro non venga impostato
@@ -288,6 +289,11 @@ for col, val in filters.items():
                 "Odd_Under_1.5", "Odd_Under_2.5", "Odd_Under_3.5", "Odd_Under_4.5", 
                 "BTTS_SI", "Giornata", "Anno"]:
         
+        # CRUCIAL: Ensure val is a tuple for range filters
+        if not isinstance(val, tuple) or len(val) != 2:
+            st.warning(f"Errore: il valore del filtro per la colonna '{col}' ({val}) non è un intervallo numerico valido. Ignoro il filtro.")
+            continue
+
         # Converte la serie da filtrare in float, gestendo gli errori
         series_to_filter = convert_to_float(filtered_df[col])
         
@@ -1180,7 +1186,7 @@ def calcola_btts_dinamico(df_to_analyze, start_min, risultati_correnti):
 
     total_matches = len(df_to_analyze)
     btts_si_count = 0
-    no_btts_count = 0 # Inizializzazione esplicita
+    no_btts_count = 0 
 
     for _, row in df_to_analyze.iterrows():
         gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
