@@ -181,7 +181,10 @@ if "Anno" in df.columns:
         
         # Opzioni per intervalli di anni dinamici (es. Ultimi 3 anni)
         dynamic_range_options_labels = []
-        for num_years in [3, 5, 7, 10]:
+        # Aggiungi "Anno Corrente"
+        dynamic_range_options_labels.append("Anno Corrente")
+        # Aggiungi "Ultimi X anni" per X da 2 a 10
+        for num_years in range(2, 11): # Genera da 2 a 10
             label = f"Ultimi {num_years} anni"
             dynamic_range_options_labels.append(label)
 
@@ -194,6 +197,14 @@ if "Anno" in df.columns:
             # Se è "Tutti", rimuovi il filtro se presente
             if "Anno" in filters:
                 del filters["Anno"]
+        elif selected_anno_display == "Anno Corrente":
+            current_calendar_year = datetime.datetime.now().year
+            if current_calendar_year in all_unique_years:
+                filters["Anno"] = current_calendar_year
+            else:
+                st.sidebar.info(f"Nessun dato disponibile per l'Anno Corrente ({current_calendar_year}) nel dataset caricato.")
+                if "Anno" in filters:
+                    del filters["Anno"]
         elif selected_anno_display.startswith("Ultimi"):
             # Se è stata selezionata un'opzione "Ultimi X anni"
             num_years_back = int(selected_anno_display.split(' ')[1])
@@ -1649,11 +1660,11 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             st.subheader(f"WinRate (Dinamica) ({len(df_target)})")
             st.write("**HT:**")
             df_winrate_ht_dynamic = calcola_winrate(df_target, "risultato_ht")
-            styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+            styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df_ht)
             st.write("**FT:**")
             df_winrate_ft_dynamic = calcola_winrate(df_target, "risultato_ft")
-            styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+            styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df_ft)
             
             # Over Goals HT e FT
@@ -1846,12 +1857,12 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
             with col1:
                 st.subheader(f"WinRate HT H2H ({len(h2h_df)})")
                 df_winrate_ht_h2h = calcola_winrate(h2h_df, "risultato_ht")
-                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df_ht)
             with col2:
                 st.subheader(f"WinRate FT H2H ({len(h2h_df)})")
                 df_winrate_ft_h2h = calcola_winrate(h2h_df, "risultato_ft")
-                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df_ft)
             
             # Doppia Chance H2H
