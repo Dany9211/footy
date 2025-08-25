@@ -154,15 +154,6 @@ filters = {}
 # --- FILTRI INIZIALI ---
 st.sidebar.header("Filtri Dati")
 
-# DEBUG: Info Dataset
-st.sidebar.subheader("DEBUG: Info Dataset Globale")
-st.sidebar.write(f"Righe totali nel dataset raw: {len(df)}")
-st.sidebar.write(f"Campionati unici: {df['League'].dropna().unique().tolist()}")
-st.sidebar.write(f"Anni unici: {sorted(df['Anno'].dropna().unique().astype(int).tolist())}")
-st.sidebar.write(f"Min Odd_Home: {df['Odd_Home'].min()} Max Odd_Home: {df['Odd_Home'].max()}")
-st.sidebar.write(f"Risultati HT unici: {df['risultato_ht'].dropna().unique().tolist()}")
-
-
 # Filtro League (Campionato) - Deve essere il primo per filtrare le squadre
 if "League" in df.columns:
     leagues = ["Tutte"] + sorted(df["League"].dropna().unique())
@@ -342,54 +333,54 @@ for col in ["Odd_Over_0.5", "Odd_over_1.5", "Odd_over_2.5", "Odd_Over_3.5", "Odd
 
 # --- APPLICA FILTRI AL DATAFRAME PRINCIPALE ---
 filtered_df = df.copy()
-st.subheader("DEBUG: Dettagli Filtraggio Passaggio per Passaggio (Filtri Generali)")
-st.write(f"**Partite iniziali (prima dei filtri generali):** {len(filtered_df)}")
+for col, val in filters.items():
+    
+    # Per i filtri di range numerici (Giornata, Quote, ecc.)
+    if col in ["Odd_Home", "Odd_Draw", "Odd__Away", "Odd_Over_0.5", "Odd_over_1.5", 
+                "Odd_over_2.5", "Odd_Over_3.5", "Odd_Over_4.5", "Odd_Under_0.5", 
+                "Odd_Under_1.5", "Odd_Under_2.5", "Odd_Under_3.5", "Odd_Under_4.5", 
+                "BTTS_SI", "Giornata"]:
+        
+        # CRUCIAL: Ensure val is a tuple for range filters
+        if not isinstance(val, tuple) or len(val) != 2:
+            st.error(f"Errore: il valore del filtro per la colonna '{col}' ({val}) non è un intervallo numerico valido. Ignoro il filtro.")
+            continue
 
-current_filtered_df_len = len(filtered_df)
+        # Converte la serie da filtrare in float, gestendo gli errori
+        series_to_filter = convert_to_float(filtered_df[col])
+        
+        # Assicurati che i limiti del filtro siano float validi
+        try:
+            lower_bound = float(val[0])
+            upper_bound = float(val[1])
+        except (ValueError, TypeError) as e:
+            st.error(f"Errore: i valori del filtro per la colonna '{col}' ({val[0]}, {val[1]}) non sono convertibili in numeri. Dettagli: {e}. Ignoro il filtro.")
+            continue # Salta questo filtro se i limiti non sono validi
 
-# Apply League filter
-if "League" in filters:
-    league_val = filters["League"]
-    filtered_df = filtered_df[filtered_df["League"] == league_val]
-    st.write(f"Dopo filtro Campionato ('{league_val}'): {len(filtered_df)} partite (rimosse {current_filtered_df_len - len(filtered_df)})")
-    current_filtered_df_len = len(filtered_df)
-
-# Apply Anno filter
-if "Anno" in filters:
-    anno_val = filters["Anno"]
-    if isinstance(anno_val, tuple) and len(anno_val) == 2:
-        lower_bound, upper_bound = anno_val
-        series_to_filter = pd.to_numeric(filtered_df["Anno"], errors='coerce')
+        # Applica il filtro. La serie è già numerica (float o NaN) e i limiti sono float.
         mask = series_to_filter.between(lower_bound, upper_bound)
         filtered_df = filtered_df[mask.fillna(True)]
-        st.write(f"Dopo filtro Anno (da {lower_bound} a {upper_bound}): {len(filtered_df)} partite (rimosse {current_filtered_df_len - len(filtered_df)})")
-    else:
-        filtered_df = filtered_df[filtered_df["Anno"] == anno_val]
-        st.write(f"Dopo filtro Anno ('{anno_val}'): {len(filtered_df)} partite (rimosse {current_filtered_df_len - len(filtered_df)})")
-    current_filtered_df_len = len(filtered_df)
+    elif col == "risultato_ht":
+        # Per i filtri multiselect, val è una lista di stringhe
+        if isinstance(val, list):
+            filtered_df = filtered_df[filtered_df[col].isin(val)]
+        else:
+            st.error(f"Errore: il valore del filtro per la colonna '{col}' non è una lista come previsto. Ignoro il filtro.")
+            continue
+    elif col == "Anno": # Gestione specifica per il filtro Anno
+        # Se 'val' è una tupla, significa che è un intervallo di anni (es. "Ultimi 5 anni")
+        if isinstance(val, tuple) and len(val) == 2:
+            lower_bound, upper_bound = val
+            series_to_filter = pd.to_numeric(filtered_df[col], errors='coerce')
+            mask = series_to_filter.between(lower_bound, upper_bound)
+            filtered_df = filtered_df[mask.fillna(True)]
+        else: # Altrimenti, è un singolo anno selezionato
+            filtered_df = filtered_df[filtered_df[col] == val]
+    else: # Per i filtri a selezione singola (es. League, Home_Team, Away_Team)
+        filtered_df = filtered_df[filtered_df[col] == val]
 
-# Apply Odd_Home filter
-if "Odd_Home" in filters:
-    odd_home_range = filters["Odd_Home"]
-    if isinstance(odd_home_range, tuple) and len(odd_home_range) == 2:
-        lower_bound, upper_bound = odd_home_range
-        series_to_filter = convert_to_float(filtered_df["Odd_Home"])
-        mask = series_to_filter.between(lower_bound, upper_bound)
-        filtered_df = filtered_df[mask.fillna(False)] # Use False here to exclude NaNs from the range
-        st.write(f"Dopo filtro Odd_Home (da {lower_bound} a {upper_bound}): {len(filtered_df)} partite (rimosse {current_filtered_df_len - len(filtered_df)})")
-    current_filtered_df_len = len(filtered_df)
-
-# Apply risultato_ht filter
-if "risultato_ht" in filters:
-    ht_results_val = filters["risultato_ht"]
-    if isinstance(ht_results_val, list):
-        filtered_df = filtered_df[filtered_df["risultato_ht"].isin(ht_results_val)]
-        st.write(f"Dopo filtro Risultato HT ('{ht_results_val}'): {len(filtered_df)} partite (rimosse {current_filtered_df_len - len(filtered_df)})")
-    current_filtered_df_len = len(filtered_df)
-
-st.subheader("Dati Filtrati (Filtri Generali)")
+st.subheader("Dati Filtrati")
 st.write(f"**Righe visualizzate:** {len(filtered_df)}")
-
 
 # --- NUOVA SEZIONE: Riepilogo Risultati per Anno ---
 st.markdown("---")
@@ -402,6 +393,7 @@ if not filtered_df.empty and "Anno" in filtered_df.columns and pd.api.types.is_n
 else:
     st.info("Nessuna partita trovata o la colonna 'Anno' non è disponibile/numerica nel dataset filtrato.")
 st.markdown("---")
+# --- FINE NUOVA SEZIONE ---
 
 st.dataframe(filtered_df.head(50))
 
@@ -1406,7 +1398,7 @@ else:
 
 
 # NUOVA SEZIONE: Statistiche Pre-Match Complete (Filtri Sidebar)
-st.subheader("3. Analisi Pre-Match Completa (Filtri Generali)")
+st.subheader("3. Analisi Pre-Match Completa (Filtri Sidebar)")
 st.write(f"Analisi completa basata su **{len(filtered_df)}** partite, considerando tutti i filtri del menu a sinistra.")
 if not filtered_df.empty:
     
@@ -1711,11 +1703,11 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             st.subheader(f"WinRate (Dinamica) ({len(df_target)})")
             st.write("**HT:**")
             df_winrate_ht_dynamic = calcola_winrate(df_target, "risultato_ht")
-            styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
             st.dataframe(styled_df_ht)
             st.write("**FT:**")
             df_winrate_ft_dynamic = calcola_winrate(df_target, "risultato_ft")
-            styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
             st.dataframe(styled_df_ft)
             
             # Over Goals HT e FT
@@ -1908,12 +1900,12 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
             with col1:
                 st.subheader(f"WinRate HT H2H ({len(h2h_df)})")
                 df_winrate_ht_h2h = calcola_winrate(h2h_df, "risultato_ht")
-                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
                 st.dataframe(styled_df_ht)
             with col2:
                 st.subheader(f"WinRate FT H2H ({len(h2h_df)})")
                 df_winrate_ft_h2h = calcola_winrate(h2h_df, "risultato_ft")
-                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
                 st.dataframe(styled_df_ft)
             
             # Doppia Chance H2H
@@ -2134,104 +2126,3 @@ with st.expander("Configura e avvia il Backtest"):
                 st.metric("Odd Minima per profitto", f"{odd_minima:.2f}")
             elif numero_scommesse == 0:
                 st.info("Nessuna scommessa idonea trovata con i filtri e il mercato selezionati.")
-
-# --- NUOVA SEZIONE 7: Analisi Squadra Specifica ---
-st.subheader("7. Analisi Squadra Specifica")
-st.write("Analizza le performance di una squadra specifica nelle sue partite in casa o fuori casa.")
-
-st.sidebar.header("Filtri Squadra Specifica")
-
-team_type_selection = st.sidebar.radio("Tipo di Partita da Analizzare", ["Home (in casa)", "Away (fuori casa)"], key="team_type_radio")
-
-# Ottieni tutte le squadre uniche dal dataset completo per la selezione
-all_teams_in_data = sorted(list(set(df['Home_Team'].dropna().unique()) | set(df['Away_Team'].dropna().unique())))
-selected_team_analysis = st.sidebar.selectbox(f"Seleziona Squadra", ["Seleziona..."] + all_teams_in_data, key="selected_team_analysis_box")
-
-num_matches_options = ["Tutte"] + [5, 10, 15, 20, 30, 40, 50]
-selected_num_matches = st.sidebar.selectbox("Numero ultime partite da analizzare", num_matches_options, key="num_matches_box")
-
-team_specific_analysis_df = pd.DataFrame() # Inizializza un DataFrame vuoto per l'analisi specifica
-
-if selected_team_analysis != "Seleziona...":
-    if team_type_selection == "Home (in casa)":
-        team_matches = df[df['Home_Team'] == selected_team_analysis].copy()
-    else: # Away (fuori casa)
-        team_matches = df[df['Away_Team'] == selected_team_analysis].copy()
-    
-    if not team_matches.empty:
-        # Ordina per data per ottenere le partite più recenti
-        team_matches = team_matches.sort_values(by='Data', ascending=False)
-        
-        if selected_num_matches != "Tutte":
-            team_specific_analysis_df = team_matches.head(selected_num_matches)
-        else:
-            team_specific_analysis_df = team_matches.copy()
-        
-        # Assicurati che 'risultato_ft' e 'risultato_ht' siano presenti per le funzioni di analisi
-        if "Gol_Home_FT" in team_specific_analysis_df.columns and "Gol_Away_FT" in team_specific_analysis_df.columns:
-            team_specific_analysis_df["risultato_ft"] = team_specific_analysis_df["Gol_Home_FT"].astype(str) + "-" + team_specific_analysis_df["Gol_Away_FT"].astype(str)
-        if "Gol_Home_HT" in team_specific_analysis_df.columns and "Gol_Away_HT" in team_specific_analysis_df.columns:
-            team_specific_analysis_df["risultato_ht"] = team_specific_analysis_df["Gol_Home_HT"].astype(str) + "-" + team_specific_analysis_df["Gol_Away_HT"].astype(str)
-    else:
-        st.warning(f"Nessuna partita trovata per **{selected_team_analysis}** come **{team_type_selection}**.")
-
-if not team_specific_analysis_df.empty:
-    st.write(f"Analisi basata su **{len(team_specific_analysis_df)}** partite per **{selected_team_analysis}** come **{team_type_selection}**.")
-    st.dataframe(team_specific_analysis_df.head()) # Mostra le prime righe del DF specifico
-
-    st.markdown("---")
-    st.subheader(f"Statistiche Dettagliate per {selected_team_analysis} ({team_type_selection})")
-
-    # Media gol
-    st.subheader("Media Gol")
-    avg_ht_goals_team = (team_specific_analysis_df["Gol_Home_HT"] + team_specific_analysis_df["Gol_Away_HT"]).mean()
-    avg_ft_goals_team = (team_specific_analysis_df["Gol_Home_FT"] + team_specific_analysis_df["Gol_Away_FT"]).mean()
-    avg_sh_goals_team = (team_specific_analysis_df["Gol_Home_FT"] + team_specific_analysis_df["Gol_Away_FT"] - team_specific_analysis_df["Gol_Home_HT"] - team_specific_analysis_df["Gol_Away_HT"]).mean()
-    
-    st.table(pd.DataFrame({
-        "Periodo": ["HT", "FT", "SH"],
-        "Media Gol": [f"{avg_ht_goals_team:.2f}", f"{avg_ft_goals_team:.2f}", f"{avg_sh_goals_team:.2f}"]
-    }))
-
-    # Risultati Esatti
-    mostra_risultati_esatti(team_specific_analysis_df, "risultato_ft", f"FT ({len(team_specific_analysis_df)})")
-    
-    # WinRate
-    st.subheader(f"WinRate ({len(team_specific_analysis_df)})")
-    df_winrate_team = calcola_winrate(team_specific_analysis_df, "risultato_ft")
-    styled_df_team = df_winrate_team.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
-    st.dataframe(styled_df_team)
-
-    # Over Goals FT
-    st.subheader(f"Over Goals FT ({len(team_specific_analysis_df)})")
-    over_ft_data_team = []
-    df_temp_goals = team_specific_analysis_df.copy()
-    df_temp_goals["tot_goals_ft"] = df_temp_goals["Gol_Home_FT"] + df_temp_goals["Gol_Away_FT"]
-    for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
-        count = (df_temp_goals["tot_goals_ft"] > t).sum()
-        perc = round((count / len(df_temp_goals)) * 100, 2)
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
-        over_ft_data_team.append([f"Over {t} FT", count, perc, odd_min])
-    df_over_ft_team = pd.DataFrame(over_ft_data_team, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
-    styled_over_ft_team = df_over_ft_team.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-    st.dataframe(styled_over_ft_team)
-
-    # BTTS FT
-    st.subheader(f"BTTS FT ({len(team_specific_analysis_df)})")
-    df_btts_ft_team = calcola_btts_ft(team_specific_analysis_df)
-    styled_df_btts_team = df_btts_ft_team.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-    st.dataframe(styled_df_btts_team)
-
-    # Distribuzione Gol per Timeframe
-    st.subheader("Distribuzione Gol per Timeframe")
-    col1_team, col2_team = st.columns(2)
-    with col1_team:
-        st.write("**15min**")
-        mostra_distribuzione_timeband(team_specific_analysis_df)
-    with col2_team:
-        st.write("**5min**")
-        mostra_distribuzione_timeband_5min(team_specific_analysis_df)
-
-else:
-    if selected_team_analysis != "Seleziona...":
-        st.info("Seleziona una squadra e un numero di partite per visualizzare l'analisi specifica.")
