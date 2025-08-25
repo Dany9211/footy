@@ -262,10 +262,11 @@ for col in ["Odd_Over_0.5", "Odd_over_1.5", "Odd_over_2.5", "Odd_Over_3.5", "Odd
 # --- APPLICA FILTRI AL DATAFRAME PRINCIPALE ---
 filtered_df = df.copy()
 for col, val in filters.items():
-    if col.startswith("Odd_") or col == "BTTS_SI" or col == "Giornata" or col == "Anno": # Includi Anno qui
-        # Assicurati che la colonna sia numerica prima di filtrare con .between
-        if pd.api.types.is_numeric_dtype(filtered_df[col]):
-            mask = filtered_df[col].between(val[0], val[1])
+    if col.startswith("Odd_") or col == "BTTS_SI" or col == "Giornata" or col == "Anno":
+        # Tentativo robusto di conversione a numerico prima del filtro .between
+        temp_series = convert_to_float(filtered_df[col])
+        if pd.api.types.is_numeric_dtype(temp_series):
+            mask = temp_series.between(val[0], val[1])
             filtered_df = filtered_df[mask.fillna(True)]
         else:
             st.warning(f"La colonna '{col}' non è numerica e non può essere filtrata per range.")
@@ -657,7 +658,7 @@ def calcola_to_score_sh(df_to_analyze):
     
     total_matches = len(df_to_score)
     
-    stats = [ # Inizializza la lista stats qui
+    stats = [ 
         ["Home Team to Score SH", home_to_score_count, round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0],
         ["Away Team to Score SH", away_to_score_count, round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0]
     ]
@@ -710,6 +711,7 @@ def calcola_goals_per_team_period(df_to_analyze, team_type, action_type, period)
         scored_col = "gol_home_sh" if team_type == 'home' else "gol_away_sh"
         conceded_col = "gol_away_sh" if team_type == 'home' else "gol_home_sh"
     else:
+        st.error("Periodo non valido per il calcolo della doppia chance.")
         return pd.DataFrame()
     
     col_to_analyze = scored_col if action_type == 'fatti' else conceded_col
@@ -963,7 +965,7 @@ def calcola_next_goal(df_to_analyze, start_min, end_min):
         
         if next_home_goal < next_away_goal:
             risultati["Prossimo Gol: Home"] += 1
-        elif next_away_goal < next_home_goal:
+        elif next_away_goal < min_home_goal:
             risultati["Prossimo Gol: Away"] += 1
         else:
             if next_home_goal == float('inf'):
