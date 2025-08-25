@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import datetime # Importazione necessaria per lavorare con le date
 
 st.set_page_config(page_title="Analisi Campionati Next Gol e stats live", layout="wide")
 st.title("Analisi Tabella 23agosto2023")
@@ -26,7 +27,7 @@ def load_data(uploaded_file):
                 return df
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
         except Exception as e:
-            st.error(f"Errore di caricamento (';', utf-8): {e}. Tentativo successivo...") # Messaggio di errore in rosso
+            st.error(f"Errore di caricamento (';', utf-8): {e}. Tentativo successivo...")
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
 
         # Strategia 2: Delimitatore ';', codifica Latin-1, salta righe malformate
@@ -37,7 +38,7 @@ def load_data(uploaded_file):
                 return df
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
         except Exception as e:
-            st.error(f"Errore di caricamento (';', latin1): {e}. Tentativo successivo...") # Messaggio di errore in rosso
+            st.error(f"Errore di caricamento (';', latin1): {e}. Tentativo successivo...")
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
 
         # Strategia 3: Delimitatore ',', codifica UTF-8, usa il motore Python, salta righe malformate
@@ -48,7 +49,7 @@ def load_data(uploaded_file):
                 return df
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
         except Exception as e:
-            st.error(f"Errore di caricamento (',', utf-8, python engine): {e}. Tentativo successivo...") # Messaggio di errore in rosso
+            st.error(f"Errore di caricamento (',', utf-8, python engine): {e}. Tentativo successivo...")
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
 
         # Strategia 4: Rilevamento automatico del delimitatore, motore Python, salta righe malformate
@@ -59,8 +60,8 @@ def load_data(uploaded_file):
                 return df
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
         except Exception as e:
-            st.error(f"Errore di caricamento (auto-delimitatore, python engine): {e}. Tentativo successivo...") # Messaggio di errore in rosso
-            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+            st.error(f"Errore di caricamento (auto-delimitatore, python engine): {e}. Tentativo successivo...")
+            uploaded_file.seek(0) # Resetta per el prossimo tentativo
 
         # Se tutte le strategie falliscono
         st.error("Impossibile leggere il file CSV con le strategie di parsing automatiche. Controlla attentamente il formato del file, il delimitatore (punto e virgola, virgola o altro) e la codifica.")
@@ -78,10 +79,10 @@ uploaded_file = st.sidebar.file_uploader("Carica il tuo file CSV", type=["csv"])
 if uploaded_file is not None:
     df = load_data(uploaded_file)
     if df.empty:
-        st.error("Il DataFrame caricato dal file è vuoto o c'è stato un errore di lettura. Controlla il formato del tuo CSV.") # Messaggio di errore in rosso
+        st.error("Il DataFrame caricato dal file è vuoto o c'è stato un errore di lettura. Controlla il formato del tuo CSV.")
         st.stop()
     st.write(f"**Righe iniziali nel dataset:** {len(df)}")
-    st.write(f"**Colonne caricate:** {df.columns.tolist()}") # Debug: mostra le colonne caricate
+    st.write(f"**Colonne caricate:** {df.columns.tolist()}")
 else:
     st.info("Per iniziare, carica un file CSV dal tuo computer.")
     st.stop()
@@ -93,7 +94,7 @@ if 'Data' in df.columns:
     df['Data'] = pd.to_datetime(df['Data'], format='%d/%m/%Y %H:%M', errors='coerce')
     df = df.dropna(subset=['Data']) # Rimuovi righe con date non valide
 else:
-    st.error("Colonna 'Data' non trovata. Assicurati che il nome della colonna sia corretto (sensibile alle maiuscole).") # Messaggio di errore in rosso
+    st.error("Colonna 'Data' non trovata. Assicurati che il nome della colonna sia corretto (sensibile alle maiuscole).")
 
 # Gestione specifica della colonna 'Anno'
 if 'Anno' in df.columns:
@@ -114,7 +115,7 @@ if 'Anno' in df.columns:
 
     df = df.dropna(subset=['Anno']) # Rimuovi righe dove 'Anno' non è stato convertito correttamente
 else:
-    st.error("Colonna 'Anno' non trovata. Assicurati che il nome della colonna sia corretto (sensibile alle maiuscole).") # Messaggio di errore in rosso
+    st.error("Colonna 'Anno' non trovata. Assicurati che il nome della colonna sia corretto (sensibile alle maiuscole).")
 
 
 # Lista di tutte le colonne che dovrebbero essere numeriche e che potrebbero avere virgole come decimali
@@ -168,24 +169,63 @@ if "League" in df.columns:
 else:
     filtered_teams_df = df.copy()
     selected_league = "Tutte"
-    st.sidebar.error("Colonna 'League' non trovata. Il filtro per campionato non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'League' non trovata. Il filtro per campionato non sarà disponibile.")
 
 
 # Filtro Anno
 if "Anno" in df.columns:
-    # Assicurati che 'Anno' sia numerico prima di prendere min/max
     df_anni_numeric = df["Anno"].dropna()
     if not df_anni_numeric.empty:
-        anni = ["Tutti"] + sorted(df_anni_numeric.unique().astype(int)) # Converti a int per la visualizzazione
-        selected_anno = st.sidebar.selectbox("Seleziona Anno", anni)
-        if selected_anno != "Tutti":
-            # Se è un anno specifico, aggiungilo come filtro di uguaglianza
-            filters["Anno"] = selected_anno 
-        # Se è "Tutti", non aggiungere "Anno" ai filtri, così non viene filtrato
+        # Ottieni tutti gli anni unici presenti nel dataset e ordinali in ordine decrescente
+        all_unique_years = sorted(df_anni_numeric.unique().astype(int), reverse=True)
+        
+        current_year = datetime.datetime.now().year
+        
+        # Opzioni per intervalli di anni dinamici (es. Ultimi 3 anni)
+        dynamic_range_options_labels = []
+        for num_years in [3, 5, 7, 10]:
+            label = f"Ultimi {num_years} anni"
+            dynamic_range_options_labels.append(label)
+
+        # Combina "Tutti", gli intervalli dinamici e gli anni individuali per la visualizzazione
+        display_options = ["Tutti"] + dynamic_range_options_labels + [str(y) for y in all_unique_years]
+        
+        selected_anno_display = st.sidebar.selectbox("Seleziona Anno", display_options)
+
+        if selected_anno_display == "Tutti":
+            # Se è "Tutti", rimuovi il filtro se presente
+            if "Anno" in filters:
+                del filters["Anno"]
+        elif selected_anno_display.startswith("Ultimi"):
+            # Se è stata selezionata un'opzione "Ultimi X anni"
+            num_years_back = int(selected_anno_display.split(' ')[1])
+            # Calcola l'anno di inizio per l'intervallo (inclusivo)
+            start_year_for_range = current_year - num_years_back + 1
+            
+            # Filtra gli anni presenti nel dataset che rientrano in questo intervallo calcolato
+            relevant_years_in_data = [y for y in all_unique_years if y >= start_year_for_range]
+
+            if relevant_years_in_data:
+                min_year_to_filter = min(relevant_years_in_data)
+                max_year_to_filter = max(relevant_years_in_data)
+                filters["Anno"] = (min_year_to_filter, max_year_to_filter)
+            else:
+                st.sidebar.info(f"Nessun dato disponibile per '{selected_anno_display}' nel dataset caricato.")
+                if "Anno" in filters:
+                    del filters["Anno"]
+        else:
+            # Se è stato selezionato un singolo anno (ad esempio, "2023")
+            try:
+                selected_year_int = int(selected_anno_display)
+                filters["Anno"] = selected_year_int
+            except ValueError:
+                st.sidebar.error(f"Valore anno non valido: {selected_anno_display}. Ignorato.")
+                if "Anno" in filters:
+                    del filters["Anno"]
     else:
         st.sidebar.info("Nessun anno valido trovato nella colonna 'Anno'.")
 else:
-    st.sidebar.error("Colonna 'Anno' non trovata. Il filtro per anno non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'Anno' non trovata. Il filtro per anno non sarà disponibile.")
 
 
 # Filtro Giornata
@@ -200,7 +240,7 @@ if "Giornata" in df.columns:
     )
     filters["Giornata"] = giornata_range
 else:
-    st.sidebar.error("Colonna 'Giornata' non trovata. Il filtro per giornata non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'Giornata' non trovata. Il filtro per giornata non sarà disponibile.")
 
 
 # --- FILTRI SQUADRE (ora dinamici) ---
@@ -210,7 +250,7 @@ if "Home_Team" in filtered_teams_df.columns:
     if selected_home != "Tutte":
         filters["Home_Team"] = selected_home
 else:
-    st.sidebar.error("Colonna 'Home_Team' non trovata. Il filtro per squadra home non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'Home_Team' non trovata. Il filtro per squadra home non sarà disponibile.")
 
 
 if "Away_Team" in filtered_teams_df.columns:
@@ -219,7 +259,7 @@ if "Away_Team" in filtered_teams_df.columns:
     if selected_away != "Tutte":
         filters["Away_Team"] = selected_away
 else:
-    st.sidebar.error("Colonna 'Away_Team' non trovata. Il filtro per squadra away non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'Away_Team' non trovata. Il filtro per squadra away non sarà disponibile.")
 
 
 # --- NUOVO FILTRO: Risultato HT ---
@@ -229,7 +269,7 @@ if "risultato_ht" in df.columns:
     if selected_ht_results:
         filters["risultato_ht"] = selected_ht_results
 else:
-    st.sidebar.error("Colonna 'risultato_ht' non trovata. Il filtro per risultato HT non sarà disponibile.") # Messaggio di errore in rosso
+    st.sidebar.error("Colonna 'risultato_ht' non trovata. Il filtro per risultato HT non sarà disponibile.")
 
 
 # --- FUNZIONE per filtri range ---
@@ -253,7 +293,7 @@ def add_range_filter(col_name, label=None):
                     # Converti a float qui e memorizza come float
                     filters[col_name] = (float(min_val_input), float(max_val_input))
                 except ValueError:
-                    st.sidebar.error(f"Valori non validi per {label or col_name}. Inserisci numeri.") # Messaggio di errore in rosso
+                    st.sidebar.error(f"Valori non validi per {label or col_name}. Inserisci numeri.")
                     # Se i valori non sono validi, assicurati che il filtro non venga impostato
                     if col_name in filters:
                         del filters[col_name]
@@ -266,7 +306,7 @@ def add_range_filter(col_name, label=None):
             if col_name in filters: # Rimuovi anche se la colonna è tutta NaN
                 del filters[col_name]
     else:
-        st.sidebar.error(f"Colonna '{label or col_name}' non trovata per il filtro.") # Messaggio di errore in rosso
+        st.sidebar.error(f"Colonna '{label or col_name}' non trovata per il filtro.")
         if col_name in filters: # Rimuovi anche se la colonna non esiste
             del filters[col_name]
 
@@ -282,18 +322,16 @@ for col in ["Odd_Over_0.5", "Odd_over_1.5", "Odd_over_2.5", "Odd_Over_3.5", "Odd
 # --- APPLICA FILTRI AL DATAFRAME PRINCIPALE ---
 filtered_df = df.copy()
 for col, val in filters.items():
-    # DEBUG: Print types and values before comparison
-    st.write(f"DEBUG: Processing filter for column '{col}'. Type of val: {type(val)}, Value of val: {val}") 
     
     # Per i filtri di range numerici (Giornata, Quote, ecc.)
     if col in ["Odd_Home", "Odd_Draw", "Odd__Away", "Odd_Over_0.5", "Odd_over_1.5", 
                 "Odd_over_2.5", "Odd_Over_3.5", "Odd_Over_4.5", "Odd_Under_0.5", 
                 "Odd_Under_1.5", "Odd_Under_2.5", "Odd_Under_3.5", "Odd_Under_4.5", 
-                "BTTS_SI", "Giornata"]: # Anno rimosso da qui
+                "BTTS_SI", "Giornata"]:
         
         # CRUCIAL: Ensure val is a tuple for range filters
         if not isinstance(val, tuple) or len(val) != 2:
-            st.error(f"Errore: il valore del filtro per la colonna '{col}' ({val}) non è un intervallo numerico valido. Ignoro il filtro.") # Messaggio di errore in rosso
+            st.error(f"Errore: il valore del filtro per la colonna '{col}' ({val}) non è un intervallo numerico valido. Ignoro il filtro.")
             continue
 
         # Converte la serie da filtrare in float, gestendo gli errori
@@ -304,11 +342,8 @@ for col, val in filters.items():
             lower_bound = float(val[0])
             upper_bound = float(val[1])
         except (ValueError, TypeError) as e:
-            st.error(f"Errore: i valori del filtro per la colonna '{col}' ({val[0]}, {val[1]}) non sono convertibili in numeri. Dettagli: {e}. Ignoro il filtro.") # Messaggio di errore in rosso
+            st.error(f"Errore: i valori del filtro per la colonna '{col}' ({val[0]}, {val[1]}) non sono convertibili in numeri. Dettagli: {e}. Ignoro il filtro.")
             continue # Salta questo filtro se i limiti non sono validi
-
-        # DEBUG: Controlla il dtype della serie prima di .between
-        st.write(f"DEBUG: Series '{col}' dtype before between: {series_to_filter.dtype}")
 
         # Applica il filtro. La serie è già numerica (float o NaN) e i limiti sono float.
         mask = series_to_filter.between(lower_bound, upper_bound)
@@ -318,11 +353,17 @@ for col, val in filters.items():
         if isinstance(val, list):
             filtered_df = filtered_df[filtered_df[col].isin(val)]
         else:
-            st.error(f"Errore: il valore del filtro per la colonna '{col}' non è una lista come previsto. Ignoro il filtro.") # Messaggio di errore in rosso
+            st.error(f"Errore: il valore del filtro per la colonna '{col}' non è una lista come previsto. Ignoro il filtro.")
             continue
-    elif col == "Anno": # Gestione specifica per il filtro Anno (selezione singola)
-        # Qui val sarà un singolo anno intero (o None se "Tutti" non è selezionato)
-        filtered_df = filtered_df[filtered_df[col] == val]
+    elif col == "Anno": # Gestione specifica per il filtro Anno
+        if isinstance(val, tuple) and len(val) == 2:
+            # Filtro per intervallo di anni (e.g., "Ultimi X anni")
+            lower_bound, upper_bound = val
+            series_to_filter = pd.to_numeric(filtered_df[col], errors='coerce')
+            mask = series_to_filter.between(lower_bound, upper_bound)
+            filtered_df = filtered_df[mask.fillna(True)]
+        else: # Filtro per singolo anno (integer)
+            filtered_df = filtered_df[filtered_df[col] == val]
     else: # Per i filtri a selezione singola (es. League, Home_Team, Away_Team)
         filtered_df = filtered_df[filtered_df[col] == val]
 
@@ -577,7 +618,7 @@ def calcola_first_to_score_sh(df_to_analyze):
             risultati["Home Team"] += 1
         elif min_away_goal < min_home_goal:
             risultati["Away Team"] += 1
-        else: 
+        else:
             if min_home_goal == float('inf'):
                 risultati["No Goals SH"] += 1
 
@@ -709,7 +750,7 @@ def calcola_to_score_sh(df_to_analyze):
     
     total_matches = len(df_to_score)
     
-    stats = [ 
+    stats = [
         ["Home Team to Score SH", home_to_score_count, round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0],
         ["Away Team to Score SH", away_to_score_count, round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0]
     ]
@@ -782,51 +823,6 @@ def calcola_goals_per_team_period(df_to_analyze, team_type, action_type, period)
     return df_results
 
 
-# --- Funzione per calcolare i mercati di Doppia Chance ---
-def calcola_double_chance(df_to_analyze, period):
-    if df_to_analyze.empty:
-        return pd.DataFrame(columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
-    
-    df_double_chance = df_to_analyze.copy()
-    
-    if period == 'ft':
-        df_double_chance["gol_home"] = df_double_chance["Gol_Home_FT"]
-        df_double_chance["gol_away"] = df_double_chance["Gol_Away_FT"]
-    elif period == 'ht':
-        df_double_chance["gol_home"] = df_double_chance["Gol_Home_HT"]
-        df_double_chance["gol_away"] = df_double_chance["Gol_Away_HT"]
-    elif period == 'sh':
-        df_double_chance["gol_home_sh"] = df_double_chance["Gol_Home_FT"] - df_double_chance["Gol_Home_HT"]
-        df_double_chance["gol_away_sh"] = df_double_chance["Gol_Away_FT"] - df_double_chance["Gol_Away_HT"]
-        df_double_chance["gol_home"] = df_double_chance["gol_home_sh"]
-        df_double_chance["gol_away"] = df_double_chance["gol_away_sh"]
-    else:
-        st.error("Periodo non valido per il calcolo della doppia chance.")
-        return pd.DataFrame()
-        
-    total_matches = len(df_double_chance)
-    
-    # 1X (Home Win or Draw)
-    count_1x = ((df_double_chance["gol_home"] >= df_double_chance["gol_away"])).sum()
-    
-    # 12 (Home Win or Away Win)
-    count_12 = ((df_double_chance["gol_home"] != df_double_chance["gol_away"])).sum()
-    
-    # X2 (Draw or Away Win)
-    count_x2 = ((df_double_chance["gol_away"] >= df_double_chance["gol_home"])).sum()
-    
-    data = [
-        ["1X", count_1x, round((count_1x / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["12", count_12, round((count_12 / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["X2", count_x2, round((count_x2 / total_matches) * 100, 2) if total_matches > 0 else 0]
-    ]
-    
-    df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
-    
-    return df_stats
-
-
 # --- FUNZIONE WINRATE ---
 def calcola_winrate(df, col_risultato):
     df_valid = df[df[col_risultato].notna() & (df[col_risultato].str.contains("-"))]
@@ -870,9 +866,9 @@ def calcola_first_to_score(df_to_analyze):
         
         if min_home_goal < min_away_goal:
             risultati["Home Team"] += 1
-        elif min_away_goal < min_home_goal: 
+        elif min_away_goal < min_home_goal:
             risultati["Away Team"] += 1
-        else: 
+        else:
             if min_home_goal == float('inf'):
                 risultati["No Goals"] += 1
 
@@ -907,7 +903,7 @@ def calcola_first_to_score_ht(df_to_analyze):
             risultati["Home Team"] += 1
         elif min_away_goal < min_home_goal:
             risultati["Away Team"] += 1
-        else: 
+        else:
             if min_home_goal == float('inf'):
                 risultati["No Goals"] += 1
 
@@ -1191,41 +1187,14 @@ def calcola_btts_dinamico(df_to_analyze, start_min, risultati_correnti):
 
     total_matches = len(df_to_analyze)
     btts_si_count = 0
-    no_btts_count = 0 
 
+    # Poiché `df_to_analyze` qui è già `df_target`, che è stato filtrato in base a `risultati_correnti`
+    # e `start_min`, dobbiamo solo verificare se entrambe le squadre hanno segnato a fine partita.
     for _, row in df_to_analyze.iterrows():
-        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
-        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
-        
-        gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit()]
-        gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit()]
-
-        home_fino = sum(1 for g in gol_home if g < start_min)
-        away_fino = sum(1 for g in gol_away if g < start_min)
-        
         gol_home_ft = int(row.get("Gol_Home_FT", 0))
         gol_away_ft = int(row.get("Gol_Away_FT", 0))
         
-        # Logica per BTTS SI dinamico
-        btts_si = False
-        if "0-0" in risultati_correnti and gol_home_ft > 0 and gol_away_ft > 0:
-            btts_si = True
-        elif "1-0" in risultati_correnti and gol_away_ft > away_fino:
-            btts_si = True
-        elif "0-1" in risultati_correnti and gol_home_ft > home_fino:
-            btts_si = True
-        elif "1-1" in risultati_correnti:
-            btts_si = True
-        elif "2-0" in risultati_correnti and gol_away_ft > away_fino:
-            btts_si = True
-        elif "0-2" in risultati_correnti and gol_home_ft > home_fino:
-            btts_si = True
-        elif "2-1" in risultati_correnti and gol_away_ft > away_fino:
-            btts_si = True
-        elif "1-2" in risultati_correnti and gol_home_ft > home_fino:
-            btts_si = True
-            
-        if btts_si:
+        if (gol_home_ft > 0 and gol_away_ft > 0):
             btts_si_count += 1
 
     no_btts_count = total_matches - btts_si_count # Calcolato qui dopo il loop
@@ -2026,7 +1995,7 @@ with st.expander("Configura e avvia il Backtest"):
             required_cols = [odd_col, "risultato_ft", "Gol_Home_FT", "Gol_Away_FT"]
             for col in required_cols:
                 if col not in df_to_analyze.columns:
-                    st.error(f"Impossibile eseguire il backtest: la colonna '{col}' non è presente nel dataset.") # Messaggio di errore in rosso
+                    st.error(f"Impossibile eseguire il backtest: la colonna '{col}' non è presente nel dataset.")
                     return 0, 0, 0, 0.0, 0.0, 0.0, 0.0
             
             vincite = 0
@@ -2102,3 +2071,4 @@ with st.expander("Configura e avvia il Backtest"):
                 st.metric("Odd Minima per profitto", f"{odd_minima:.2f}")
             elif numero_scommesse == 0:
                 st.info("Nessuna scommessa idonea trovata con i filtri e il mercato selezionati.")
+
