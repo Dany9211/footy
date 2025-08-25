@@ -870,7 +870,7 @@ def calcola_first_to_score(df_to_analyze):
         
         if min_home_goal < min_away_goal:
             risultati["Home Team"] += 1
-        elif min_away_goal < min_home_goal:
+        elif min_away_goal < min_home_goal: 
             risultati["Away Team"] += 1
         else: 
             if min_home_goal == float('inf'):
@@ -1021,7 +1021,7 @@ def calcola_next_goal(df_to_analyze, start_min, end_min):
         
         if next_home_goal < next_away_goal:
             risultati["Prossimo Gol: Home"] += 1
-        elif next_away_goal < min_home_goal:
+        elif next_away_goal < next_home_goal: # Correzione qui
             risultati["Prossimo Gol: Away"] += 1
         else:
             if next_home_goal == float('inf'):
@@ -1635,8 +1635,8 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
         # Assicurati che ht_results esista e non sia vuoto
         ht_results_to_show = sorted(df["risultato_ht"].dropna().unique()) if "risultato_ht" in df.columns else []
         risultati_correnti = st.multiselect("Risultato corrente al minuto iniziale",
-                                            ht_results_to_show,
-                                            default=["0-0"] if "0-0" in ht_results_to_show else [])
+                                             ht_results_to_show,
+                                             default=["0-0"] if "0-0" in ht_results_to_show else [])
 
         partite_target = []
         for _, row in filtered_df.iterrows():
