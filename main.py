@@ -750,7 +750,8 @@ def calcola_first_to_score_next_goal_outcome_sh(df_to_analyze):
 
 def calcola_to_score_sh(df_to_analyze):
     if df_to_analyze.empty:
-        return pd.DataFrame()
+        # Restituisce un DataFrame vuoto con le colonne attese
+        return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
 
     df_to_score = df_to_analyze.copy()
 
@@ -767,14 +768,15 @@ def calcola_to_score_sh(df_to_analyze):
         ["Away Team to Score SH", away_to_score_count, round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0]
     ]
     
-    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %"])
     df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
     
     return df_stats
 
 def calcola_clean_sheet_sh(df_to_analyze):
     if df_to_analyze.empty:
-        return pd.DataFrame()
+        # Restituisce un DataFrame vuoto con le colonne attese
+        return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
     df_clean_sheet = df_to_analyze.copy()
     
@@ -936,6 +938,11 @@ def mostra_risultati_esatti(df, col_risultato, titolo):
         "3-0", "3-1", "3-2", "3-3"
     ]
     df_valid = df[df[col_risultato].notna() & (df[col_risultato].str.contains("-"))].copy()
+
+    if df_valid.empty: # Aggiunto controllo per DataFrame vuoto
+        st.subheader(f"Risultati Esatti {titolo} (0 partite)")
+        st.info("Nessun dato valido per i risultati esatti nel dataset filtrato.")
+        return
 
     def classifica_risultato(ris):
         try:
@@ -1246,7 +1253,7 @@ def calcola_btts_ht_dinamico(df_to_analyze):
 # --- NUOVA FUNZIONE PER CLEAN SHEET ---
 def calcola_clean_sheet(df_to_analyze):
     if df_to_analyze.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"]) # Ensure columns are present
     
     df_clean_sheet = df_to_analyze.copy()
     
@@ -1268,7 +1275,7 @@ def calcola_clean_sheet(df_to_analyze):
 # --- NUOVA FUNZIONE PER COMBO MARKETS ---
 def calcola_combo_stats(df_to_analyze):
     if df_to_analyze.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"]) # Ensure columns are present
         
     df_combo = df_to_analyze.copy()
 
@@ -1299,7 +1306,7 @@ def calcola_combo_stats(df_to_analyze):
 # --- NUOVA FUNZIONE PER MULTI GOL ---
 def calcola_multi_gol(df_to_analyze, col_gol, titolo):
     if df_to_analyze.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=[f"Mercato ({titolo})", "Conteggio", "Percentuale %", "Odd Minima"]) # Ensure columns are present
     
     df_multi_gol = df_to_analyze.copy()
     
@@ -1660,11 +1667,11 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             st.subheader(f"WinRate (Dinamica) ({len(df_target)})")
             st.write("**HT:**")
             df_winrate_ht_dynamic = calcola_winrate(df_target, "risultato_ht")
-            styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
             st.dataframe(styled_df_ht)
             st.write("**FT:**")
             df_winrate_ft_dynamic = calcola_winrate(df_target, "risultato_ft")
-            styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
             st.dataframe(styled_df_ft)
             
             # Over Goals HT e FT
@@ -1857,12 +1864,12 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
             with col1:
                 st.subheader(f"WinRate HT H2H ({len(h2h_df)})")
                 df_winrate_ht_h2h = calcola_winrate(h2h_df, "risultato_ht")
-                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
                 st.dataframe(styled_df_ht)
             with col2:
                 st.subheader(f"WinRate FT H2H ({len(h2h_df)})")
                 df_winrate_ft_h2h = calcola_winrate(h2h_df, "risultato_ft")
-                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
                 st.dataframe(styled_df_ft)
             
             # Doppia Chance H2H
