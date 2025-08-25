@@ -176,7 +176,7 @@ if "Anno" in df.columns:
     # Assicurati che 'Anno' sia numerico prima di prendere min/max
     df_anni_numeric = df["Anno"].dropna()
     if not df_anni_numeric.empty:
-        anni = ["Tutte"] + sorted(df_anni_numeric.unique().astype(int)) # Converti a int per la visualizzazione
+        anni = ["Tutti"] + sorted(df_anni_numeric.unique().astype(int)) # Converti a int per la visualizzazione
         selected_anno = st.sidebar.selectbox("Seleziona Anno", anni)
         if selected_anno != "Tutte":
             filters["Anno"] = selected_anno
@@ -1180,7 +1180,8 @@ def calcola_btts_dinamico(df_to_analyze, start_min, risultati_correnti):
 
     total_matches = len(df_to_analyze)
     btts_si_count = 0
-    
+    no_btts_count = 0 # Inizializzazione esplicita
+
     for _, row in df_to_analyze.iterrows():
         gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
         gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
@@ -1216,7 +1217,7 @@ def calcola_btts_dinamico(df_to_analyze, start_min, risultati_correnti):
         if btts_si:
             btts_si_count += 1
 
-    btts_no_count = total_matches - btts_si_count
+    no_btts_count = total_matches - btts_si_count # Calcolato qui dopo il loop
 
     data = [
         ["BTTS SI (Dinamica)", btts_si_count, round((btts_si_count / total_matches) * 100, 2) if total_matches > 0 else 0],
