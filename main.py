@@ -265,13 +265,17 @@ for col in ["Odd_Over_0.5", "Odd_over_1.5", "Odd_over_2.5", "Odd_Over_3.5", "Odd
 # --- APPLICA FILTRI AL DATAFRAME PRINCIPALE ---
 filtered_df = df.copy()
 for col, val in filters.items():
-    # Poiché tutte le colonne numeriche dovrebbero essere già convertite,
-    # possiamo applicare il filtro direttamente.
-    # Il controllo pd.api.types.is_numeric_dtype(filtered_df[col]) è ancora utile
-    # come ultima difesa, se la pre-elaborazione ha fallito per qualche riga.
-    if col.startswith("Odd_") or col == "BTTS_SI" or col == "Giornata" or col == "Anno":
-        if pd.api.types.is_numeric_dtype(filtered_df[col]):
-            mask = filtered_df[col].between(val[0], val[1])
+    # Per le colonne che usano .between, assicurati che siano numeriche.
+    # La pre-elaborazione dovrebbe aver già fatto il grosso del lavoro.
+    # Questo è un controllo di sicurezza per catturare eventuali residui.
+    if col in ["Odd_Home", "Odd_Draw", "Odd__Away", "Odd_Over_0.5", "Odd_over_1.5", 
+                "Odd_over_2.5", "Odd_Over_3.5", "Odd_Over_4.5", "Odd_Under_0.5", 
+                "Odd_Under_1.5", "Odd_Under_2.5", "Odd_Under_3.5", "Odd_Under_4.5", 
+                "BTTS_SI", "Giornata", "Anno"]:
+        # Applica convert_to_float per creare una serie temporanea numerica per il filtro
+        temp_series_for_filter = convert_to_float(filtered_df[col])
+        if pd.api.types.is_numeric_dtype(temp_series_for_filter):
+            mask = temp_series_for_filter.between(val[0], val[1])
             filtered_df = filtered_df[mask.fillna(True)]
         else:
             st.warning(f"La colonna '{col}' non è numerica e non può essere filtrata per range. Controlla il tuo CSV.")
@@ -933,7 +937,6 @@ def mostra_distribuzione_timeband(df_to_analyze):
 # --- NUOVA FUNZIONE RIUTILIZZABILE PER DISTRIBUZIONE TIMEBAND (5 MIN) ---
 def mostra_distribuzione_timeband_5min(df_to_analyze):
     if df_to_analyze.empty:
-        st.warning("Il DataFrame per l'analisi a 5 minuti è vuoto.")
         return
     intervalli = [(0,5), (6,10), (11,15), (16,20), (21,25), (26,30), (31,35), (36,40), (41,45), (46,50), (51,55), (56,60), (61,65), (66,70), (71,75), (76,80), (81,85), (86,90), (91, 150)]
     label_intervalli = ["0-5", "6-10", "11-15", "16-20", "21-25", "26-30", "31-35", "36-40", "41-45", "46-50", "51-55", "56-60", "61-65", "66-70", "71-75", "76-80", "81-85", "86-90", "90+"]
@@ -1145,8 +1148,11 @@ def calcola_btts_dinamico(df_to_analyze, start_min, risultati_correnti):
         gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
         gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
         
-        gol_home_before = sum(1 for g in [int(x) for x in gol_home_str.split(";") if x.isdigit()] if g < start_min)
-        gol_away_before = sum(1 for g in [int(x) for x in gol_away_str.split(";") if x.isdigit()] if g < start_min)
+        gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit()]
+        gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit()]
+
+        home_fino = sum(1 for g in gol_home if g < start_min)
+        away_fino = sum(1 for g in gol_away if g < start_min)
         
         gol_home_ft = int(row.get("Gol_Home_FT", 0))
         gol_away_ft = int(row.get("Gol_Away_FT", 0))
@@ -1155,19 +1161,19 @@ def calcola_btts_dinamico(df_to_analyze, start_min, risultati_correnti):
         btts_si = False
         if "0-0" in risultati_correnti and gol_home_ft > 0 and gol_away_ft > 0:
             btts_si = True
-        elif "1-0" in risultati_correnti and gol_away_ft > gol_away_before:
+        elif "1-0" in risultati_correnti and gol_away_ft > away_fino:
             btts_si = True
-        elif "0-1" in risultati_correnti and gol_home_ft > gol_home_before:
+        elif "0-1" in risultati_correnti and gol_home_ft > home_fino:
             btts_si = True
         elif "1-1" in risultati_correnti:
             btts_si = True
-        elif "2-0" in risultati_correnti and gol_away_ft > gol_away_before:
+        elif "2-0" in risultati_correnti and gol_away_ft > away_fino:
             btts_si = True
-        elif "0-2" in risultati_correnti and gol_home_ft > gol_home_before:
+        elif "0-2" in risultati_correnti and gol_home_ft > home_fino:
             btts_si = True
-        elif "2-1" in risultati_correnti and gol_away_ft > gol_away_before:
+        elif "2-1" in risultati_correnti and gol_away_ft > away_fino:
             btts_si = True
-        elif "1-2" in risultati_correnti and gol_home_ft > gol_home_before:
+        elif "1-2" in risultati_correnti and gol_home_ft > home_fino:
             btts_si = True
             
         if btts_si:
