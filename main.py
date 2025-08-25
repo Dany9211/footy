@@ -179,8 +179,6 @@ if "Anno" in df.columns:
         # Ottieni tutti gli anni unici presenti nel dataset e ordinali in ordine decrescente
         all_unique_years = sorted(df_anni_numeric.unique().astype(int), reverse=True)
         
-        current_year = datetime.datetime.now().year
-        
         # Opzioni per intervalli di anni dinamici (es. Ultimi 3 anni)
         dynamic_range_options_labels = []
         for num_years in [3, 5, 7, 10]:
@@ -199,17 +197,20 @@ if "Anno" in df.columns:
         elif selected_anno_display.startswith("Ultimi"):
             # Se è stata selezionata un'opzione "Ultimi X anni"
             num_years_back = int(selected_anno_display.split(' ')[1])
-            # Calcola l'anno di inizio per l'intervallo (inclusivo)
-            start_year_for_range = current_year - num_years_back + 1
             
-            # Filtra gli anni presenti nel dataset che rientrano in questo intervallo calcolato
-            relevant_years_in_data = [y for y in all_unique_years if y >= start_year_for_range]
-
-            if relevant_years_in_data:
-                min_year_to_filter = min(relevant_years_in_data)
-                max_year_to_filter = max(relevant_years_in_data)
+            # Prendi gli ultimi 'num_years_back' anni dal dataset disponibile
+            if len(all_unique_years) >= num_years_back:
+                # Seleziona i 'num_years_back' anni più recenti dalla lista ordinata
+                years_to_filter = all_unique_years[:num_years_back]
+                min_year_to_filter = min(years_to_filter)
+                max_year_to_filter = max(years_to_filter)
                 filters["Anno"] = (min_year_to_filter, max_year_to_filter)
-            else:
+            elif all_unique_years: # Se ci sono anni, ma meno di quelli richiesti, usa tutti quelli disponibili
+                min_year_to_filter = min(all_unique_years)
+                max_year_to_filter = max(all_unique_years)
+                filters["Anno"] = (min_year_to_filter, max_year_to_filter)
+                st.sidebar.info(f"Il dataset contiene solo {len(all_unique_years)} anni. Verranno utilizzati tutti gli anni disponibili per '{selected_anno_display}'.")
+            else: # Nessun anno nel dataset
                 st.sidebar.info(f"Nessun dato disponibile per '{selected_anno_display}' nel dataset caricato.")
                 if "Anno" in filters:
                     del filters["Anno"]
@@ -755,7 +756,7 @@ def calcola_to_score_sh(df_to_analyze):
         ["Away Team to Score SH", away_to_score_count, round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0]
     ]
     
-    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %"])
+    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %"])
     df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
     
     return df_stats
