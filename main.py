@@ -69,6 +69,7 @@ def load_data(uploaded_file):
 
 # --- Funzione per convertire stringhe con virgola in float ---
 def convert_to_float(series):
+    # Converte in stringa prima di sostituire, per gestire vari tipi di input
     return pd.to_numeric(series.astype(str).str.replace(",", "."), errors="coerce")
 
 # --- Caricamento dati iniziali tramite file upload ---
@@ -116,28 +117,30 @@ else:
     st.warning("Colonna 'Anno' non trovata. Assicurati che il nome della colonna sia corretto (sensibile alle maiuscole).")
 
 
-# Conversione delle colonne numeriche con virgola in float
-cols_to_convert_to_float = [
+# Lista di tutte le colonne che dovrebbero essere numeriche e che potrebbero avere virgole come decimali
+all_numeric_cols_with_comma = [
     "Odd_Home", "Odd_Draw", "Odd__Away", "Odd_Over_0.5", "Odd_over_1.5", 
     "Odd_over_2.5", "Odd_Over_3.5", "Odd_Over_4.5", "Odd_Under_0.5", 
-    "Odd_Under_1.5", "Odd_Under_2.5", "Odd_Under_3.5", "Odd_Under_4.5"
-]
-for col in cols_to_convert_to_float:
-    if col in df.columns:
-        df[col] = convert_to_float(df[col])
-
-# Conversione di altre colonne numeriche chiave
-numeric_cols = [
-    "Gol_Home_FT", "Gol_Away_FT", "Gol_Home_HT", "Gol_Away_HT", 
-    "Home_Pos_Tot", "Away_Pos_Tot", "Home_Pos_H", "Away_Pos_A",
-    "BTTS_SI", "elohomeo", "eloawayo", "formah", "formaa", "suth", "suth1", "suth2",
+    "Odd_Under_1.5", "Odd_Under_2.5", "Odd_Under_3.5", "Odd_Under_4.5",
+    "elohomeo", "eloawayo", "formah", "formaa", "suth", "suth1", "suth2",
     "suta", "suta1", "suta2", "sutht", "sutht1", "sutht2", "sutat", "sutat1", "sutat2",
     "corh", "corh1", "corh2", "cora", "cora1", "cora2", "yellowh", "yellowh1", "yellowh2",
     "yellowa", "yellowa1", "yellowa2", "ballph", "ballph1", "ballph2", "ballpa", "ballpa1", "ballpa2"
 ]
-for col in numeric_cols:
+
+# Applica convert_to_float a tutte queste colonne
+for col in all_numeric_cols_with_comma:
     if col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
+        df[col] = convert_to_float(df[col])
+
+# Conversione di altre colonne numeriche chiave che non dovrebbero avere virgole (es. Gol, Giornata)
+# Queste dovrebbero essere già gestite da pd.to_numeric con errors='coerce' se non sono già numeri
+other_int_cols = ["Gol_Home_FT", "Gol_Away_FT", "Gol_Home_HT", "Gol_Away_HT", 
+                  "Home_Pos_Tot", "Away_Pos_Tot", "Home_Pos_H", "Away_Pos_A", "Giornata", "BTTS_SI"]
+
+for col in other_int_cols:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64') # Usa Int64 per gestire NaN in interi
 
 # --- Aggiunta colonne risultato_ft e risultato_ht ---
 if "Gol_Home_FT" in df.columns and "Gol_Away_FT" in df.columns:
@@ -262,14 +265,16 @@ for col in ["Odd_Over_0.5", "Odd_over_1.5", "Odd_over_2.5", "Odd_Over_3.5", "Odd
 # --- APPLICA FILTRI AL DATAFRAME PRINCIPALE ---
 filtered_df = df.copy()
 for col, val in filters.items():
+    # Poiché tutte le colonne numeriche dovrebbero essere già convertite,
+    # possiamo applicare il filtro direttamente.
+    # Il controllo pd.api.types.is_numeric_dtype(filtered_df[col]) è ancora utile
+    # come ultima difesa, se la pre-elaborazione ha fallito per qualche riga.
     if col.startswith("Odd_") or col == "BTTS_SI" or col == "Giornata" or col == "Anno":
-        # Tentativo robusto di conversione a numerico prima del filtro .between
-        temp_series = convert_to_float(filtered_df[col])
-        if pd.api.types.is_numeric_dtype(temp_series):
-            mask = temp_series.between(val[0], val[1])
+        if pd.api.types.is_numeric_dtype(filtered_df[col]):
+            mask = filtered_df[col].between(val[0], val[1])
             filtered_df = filtered_df[mask.fillna(True)]
         else:
-            st.warning(f"La colonna '{col}' non è numerica e non può essere filtrata per range.")
+            st.warning(f"La colonna '{col}' non è numerica e non può essere filtrata per range. Controlla il tuo CSV.")
     elif col == "risultato_ht":
         filtered_df = filtered_df[filtered_df[col].isin(val)]
     else:
