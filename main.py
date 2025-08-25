@@ -276,8 +276,13 @@ for col, val in filters.items():
                 "BTTS_SI", "Giornata", "Anno"]:
         # Applica convert_to_float per creare una serie temporanea numerica per il filtro
         temp_series_for_filter = convert_to_float(filtered_df[col])
+        
+        # Converti esplicitamente a float per garantire il dtype corretto per .between
+        # Questo trasforma anche eventuali Int64 (che possono contenere NaN) in float
+        temp_series_for_filter = temp_series_for_filter.astype(float) 
+
         if pd.api.types.is_numeric_dtype(temp_series_for_filter):
-            mask = temp_series_for_filter.between(val[0], val[1])
+            mask = temp_series_for_filter.between(float(val[0]), float(val[1])) # Assicurati che anche val[0] e val[1] siano float
             filtered_df = filtered_df[mask.fillna(True)]
         else:
             st.warning(f"La colonna '{col}' non è numerica e non può essere filtrata per range. Controlla il tuo CSV.")
