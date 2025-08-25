@@ -22,7 +22,7 @@ def load_data(uploaded_file):
             df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8', on_bad_lines='skip', header=0)
             # Verifica se il DataFrame è stato letto correttamente (non vuoto e con più di una colonna)
             if not df.empty and len(df.columns) > 1:
-                st.success("File CSV caricato con successo (delimitatore ';', codifica utf-8).")
+                st.success(f"File CSV caricato con successo (delimitatore ';', codifica utf-8). Colonne: {df.columns.tolist()}")
                 return df
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
         except Exception as e:
@@ -33,7 +33,7 @@ def load_data(uploaded_file):
         try:
             df = pd.read_csv(uploaded_file, sep=';', encoding='latin1', on_bad_lines='skip', header=0)
             if not df.empty and len(df.columns) > 1:
-                st.success("File CSV caricato con successo (delimitatore ';', codifica latin1).")
+                st.success(f"File CSV caricato con successo (delimitatore ';', codifica latin1). Colonne: {df.columns.tolist()}")
                 return df
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
         except Exception as e:
@@ -44,7 +44,7 @@ def load_data(uploaded_file):
         try:
             df = pd.read_csv(uploaded_file, sep=',', encoding='utf-8', on_bad_lines='skip', engine='python', header=0)
             if not df.empty and len(df.columns) > 1:
-                st.success("File CSV caricato con successo (delimitatore ',', codifica utf-8, motore python).")
+                st.success(f"File CSV caricato con successo (delimitatore ',', codifica utf-8, motore python). Colonne: {df.columns.tolist()}")
                 return df
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
         except Exception as e:
@@ -55,7 +55,7 @@ def load_data(uploaded_file):
         try:
             df = pd.read_csv(uploaded_file, sep=None, engine='python', on_bad_lines='skip', header=0)
             if not df.empty and len(df.columns) > 1:
-                st.success("File CSV caricato con successo (delimitatore auto-rilevato, motore python).")
+                st.success(f"File CSV caricato con successo (delimitatore auto-rilevato, motore python). Colonne: {df.columns.tolist()}")
                 return df
             uploaded_file.seek(0) # Resetta per il prossimo tentativo
         except Exception as e:
@@ -80,15 +80,41 @@ if uploaded_file is not None:
         st.warning("Il DataFrame caricato dal file è vuoto o c'è stato un errore di lettura. Controlla il formato del tuo CSV.")
         st.stop()
     st.write(f"**Righe iniziali nel dataset:** {len(df)}")
+    st.write(f"**Colonne caricate:** {df.columns.tolist()}") # Debug: mostra le colonne caricate
 else:
     st.info("Per iniziare, carica un file CSV dal tuo computer.")
     st.stop()
 
 # --- Pre-elaborazione e pulizia dati ---
+
 # Conversione della colonna 'Data' in formato datetime
 if 'Data' in df.columns:
     df['Data'] = pd.to_datetime(df['Data'], format='%d/%m/%Y %H:%M', errors='coerce')
     df = df.dropna(subset=['Data']) # Rimuovi righe con date non valide
+else:
+    st.warning("Colonna 'Data' non trovata. Assicurati che il nome della colonna sia corretto (sensibile alle maiuscole).")
+
+# Gestione specifica della colonna 'Anno'
+if 'Anno' in df.columns:
+    # Converti 'Anno' in numerico, trasformando errori in NaN
+    df['Anno'] = pd.to_numeric(df['Anno'], errors='coerce')
+    
+    # Logica per convertire anni a 2 cifre (es. 15 -> 2015) - da attivare se necessario
+    # Se la tua colonna 'Anno' contiene solo le ultime due cifre dell'anno (es. 15 per 2015)
+    # e vuoi convertirle in anni completi (es. 2015), puoi usare la seguente logica:
+    # def convert_two_digit_year(year):
+    #     if pd.isna(year):
+    #         return year
+    #     year_int = int(year)
+    #     if year_int < 100: # Assumendo che gli anni a 2 cifre siano dal 2000s
+    #         return year_int + 2000
+    #     return year_int
+    # df['Anno'] = df['Anno'].apply(convert_two_digit_year)
+
+    df = df.dropna(subset=['Anno']) # Rimuovi righe dove 'Anno' non è stato convertito correttamente
+else:
+    st.warning("Colonna 'Anno' non trovata. Assicurati che il nome della colonna sia corretto (sensibile alle maiuscole).")
+
 
 # Conversione delle colonne numeriche con virgola in float
 cols_to_convert_to_float = [
@@ -139,13 +165,23 @@ if "League" in df.columns:
 else:
     filtered_teams_df = df.copy()
     selected_league = "Tutte"
+    st.warning("Colonna 'League' non trovata. Il filtro per campionato non sarà disponibile.")
+
 
 # Filtro Anno
 if "Anno" in df.columns:
-    anni = ["Tutti"] + sorted(df["Anno"].dropna().unique())
-    selected_Anno = st.sidebar.selectbox("Seleziona Anno", anni)
-    if selected_Anno != "Tutte":
-        filters["Anno"] = selected_Anno
+    # Assicurati che 'Anno' sia numerico prima di prendere min/max
+    df_anni_numeric = df["Anno"].dropna()
+    if not df_anni_numeric.empty:
+        anni = ["Tutti"] + sorted(df_anni_numeric.unique().astype(int)) # Converti a int per la visualizzazione
+        selected_anno = st.sidebar.selectbox("Seleziona Anno", anni)
+        if selected_anno != "Tutti":
+            filters["Anno"] = selected_anno
+    else:
+        st.sidebar.info("Nessun anno valido trovato nella colonna 'Anno'.")
+else:
+    st.sidebar.warning("Colonna 'Anno' non trovata. Il filtro per anno non sarà disponibile.")
+
 
 # Filtro Giornata
 if "Giornata" in df.columns:
@@ -158,6 +194,9 @@ if "Giornata" in df.columns:
         value=(giornata_min, giornata_max)
     )
     filters["Giornata"] = giornata_range
+else:
+    st.sidebar.warning("Colonna 'Giornata' non trovata. Il filtro per giornata non sarà disponibile.")
+
 
 # --- FILTRI SQUADRE (ora dinamici) ---
 if "Home_Team" in filtered_teams_df.columns:
@@ -165,12 +204,18 @@ if "Home_Team" in filtered_teams_df.columns:
     selected_home = st.sidebar.selectbox("Seleziona Squadra Home", home_teams)
     if selected_home != "Tutte":
         filters["Home_Team"] = selected_home
+else:
+    st.sidebar.warning("Colonna 'Home_Team' non trovata. Il filtro per squadra home non sarà disponibile.")
+
 
 if "Away_Team" in filtered_teams_df.columns:
     away_teams = ["Tutte"] + sorted(filtered_teams_df["Away_Team"].dropna().unique())
     selected_away = st.sidebar.selectbox("Seleziona Squadra Away", away_teams)
     if selected_away != "Tutte":
         filters["Away_Team"] = selected_away
+else:
+    st.sidebar.warning("Colonna 'Away_Team' non trovata. Il filtro per squadra away non sarà disponibile.")
+
 
 # --- NUOVO FILTRO: Risultato HT ---
 if "risultato_ht" in df.columns:
@@ -178,23 +223,33 @@ if "risultato_ht" in df.columns:
     selected_ht_results = st.sidebar.multiselect("Seleziona Risultato HT", ht_results, default=None)
     if selected_ht_results:
         filters["risultato_ht"] = selected_ht_results
+else:
+    st.sidebar.warning("Colonna 'risultato_ht' non trovata. Il filtro per risultato HT non sarà disponibile.")
+
 
 # --- FUNZIONE per filtri range ---
 def add_range_filter(col_name, label=None):
     if col_name in df.columns:
         col_temp = df[col_name] # Ora dovrebbe essere già numerico
-        col_min = float(col_temp.min(skipna=True))
-        col_max = float(col_temp.max(skipna=True))
-        
-        st.sidebar.write(f"Range attuale {label or col_name}: {col_min} - {col_max}")
-        min_val = st.sidebar.text_input(f"Min {label or col_name}", value="")
-        max_val = st.sidebar.text_input(f"Max {label or col_name}", value="")
-        
-        if min_val.strip() != "" and max_val.strip() != "":
-            try:
-                filters[col_name] = (float(min_val), float(max_val))
-            except ValueError:
-                st.sidebar.warning(f"Valori non validi per {label or col_name}. Inserisci numeri.")
+        # Evita di calcolare min/max su serie completamente NaN
+        if not col_temp.isnull().all():
+            col_min = float(col_temp.min(skipna=True))
+            col_max = float(col_temp.max(skipna=True))
+            
+            st.sidebar.write(f"Range attuale {label or col_name}: {col_min} - {col_max}")
+            min_val = st.sidebar.text_input(f"Min {label or col_name}", value="")
+            max_val = st.sidebar.text_input(f"Max {label or col_name}", value="")
+            
+            if min_val.strip() != "" and max_val.strip() != "":
+                try:
+                    filters[col_name] = (float(min_val), float(max_val))
+                except ValueError:
+                    st.sidebar.warning(f"Valori non validi per {label or col_name}. Inserisci numeri.")
+        else:
+            st.sidebar.info(f"Colonna '{label or col_name}' non contiene valori numerici validi per il filtro.")
+    else:
+        st.sidebar.warning(f"Colonna '{label or col_name}' non trovata per il filtro.")
+
 
 st.sidebar.header("Filtri Quote")
 for col in ["Odd_Home", "Odd_Draw", "Odd__Away"]:
@@ -207,12 +262,13 @@ for col in ["Odd_Over_0.5", "Odd_over_1.5", "Odd_over_2.5", "Odd_Over_3.5", "Odd
 # --- APPLICA FILTRI AL DATAFRAME PRINCIPALE ---
 filtered_df = df.copy()
 for col, val in filters.items():
-    if col.startswith("Odd_") or col == "BTTS_SI":
-        mask = filtered_df[col].between(val[0], val[1])
-        filtered_df = filtered_df[mask.fillna(True)]
-    elif col == "Giornata":
-        mask = filtered_df[col].between(val[0], val[1])
-        filtered_df = filtered_df[mask.fillna(True)]
+    if col.startswith("Odd_") or col == "BTTS_SI" or col == "Giornata" or col == "Anno": # Includi Anno qui
+        # Assicurati che la colonna sia numerica prima di filtrare con .between
+        if pd.api.types.is_numeric_dtype(filtered_df[col]):
+            mask = filtered_df[col].between(val[0], val[1])
+            filtered_df = filtered_df[mask.fillna(True)]
+        else:
+            st.warning(f"La colonna '{col}' non è numerica e non può essere filtrata per range.")
     elif col == "risultato_ht":
         filtered_df = filtered_df[filtered_df[col].isin(val)]
     else:
@@ -224,13 +280,13 @@ st.write(f"**Righe visualizzate:** {len(filtered_df)}")
 # --- NUOVA SEZIONE: Riepilogo Risultati per Anno ---
 st.markdown("---")
 st.subheader("Riepilogo partite per Anno")
-if not filtered_df.empty and "Anno" in filtered_df.columns:
-    partite_per_Anno = filtered_df["Anno"].value_counts().sort_index()
-    riepilogo_df = pd.DataFrame(partite_per_Anno).reset_index()
+if not filtered_df.empty and "Anno" in filtered_df.columns and pd.api.types.is_numeric_dtype(filtered_df["Anno"]):
+    partite_per_anno = filtered_df["Anno"].value_counts().sort_index()
+    riepilogo_df = pd.DataFrame(partite_per_anno).reset_index()
     riepilogo_df.columns = ["Anno", "Partite Trovate"]
     st.table(riepilogo_df)
 else:
-    st.info("Nessuna partita trovata o la colonna 'Anno' non è disponibile nel dataset.")
+    st.info("Nessuna partita trovata o la colonna 'Anno' non è disponibile/numerica nel dataset filtrato.")
 st.markdown("---")
 # --- FINE NUOVA SEZIONE ---
 
@@ -523,7 +579,7 @@ def calcola_first_to_score_outcome_sh(df_to_analyze):
 
     stats = []
     for esito, count in risultati.items():
-        perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
+        perc = round((count / total_matches) * 100, 2) if totale_partite > 0 else 0
         odd_min = round(100 / perc, 2) if perc > 0 else "-"
         stats.append((esito, count, perc, odd_min))
     
@@ -581,7 +637,7 @@ def calcola_first_to_score_next_goal_outcome_sh(df_to_analyze):
 
     stats = []
     for esito, count in risultati.items():
-        perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
+        perc = round((count / totale_partite) * 100, 2) if totale_partite > 0 else 0
         odd_min = round(100 / perc, 2) if perc > 0 else "-"
         stats.append((esito, count, perc, odd_min))
     
@@ -1479,7 +1535,7 @@ if not filtered_df.empty:
         if not rimonte_stats.empty:
             styled_df = rimonte_stats.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df)
-            st.markdown("**Squadre che hAnno effettuato rimonte:**")
+            st.markdown("**Squadre che hanno effettuato rimonte:**")
             for tipo, squadre in squadre_rimonte.items():
                 if squadre:
                     st.markdown(f"**{tipo}:** {', '.join(squadre)}")
@@ -1522,10 +1578,10 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
 
         partite_target = []
         for _, row in filtered_df.iterrows():
-            gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
-            gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
-            home_fino = sum(1 for g in gol_home if g < start_min)
-            away_fino = sum(1 for g in gol_away if g < start_min)
+            gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+            gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
+            home_fino = sum(1 for g in [int(x) for x in gol_home_str.split(";") if x.isdigit()] if g < start_min)
+            away_fino = sum(1 for g in [int(x) for x in gol_away_str.split(";") if x.isdigit()] if g < start_min)
             risultato_fino = f"{home_fino}-{away_fino}"
             if risultato_fino in risultati_correnti:
                 partite_target.append(row)
@@ -1691,7 +1747,7 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 styled_df = rimonte_stats.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
                 
-                st.markdown("**Squadre che hAnno effettuato rimonte:**")
+                st.markdown("**Squadre che hanno effettuato rimonte:**")
                 for tipo, squadre in squadre_rimonte.items():
                     if squadre:
                         st.markdown(f"**{tipo}:** {', '.join(squadre)}")
@@ -1872,7 +1928,7 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
                 styled_df = rimonte_stats.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
                 
-                st.markdown("**Squadre che hAnno effettuato rimonte:**")
+                st.markdown("**Squadre che hanno effettuato rimonte:**")
                 for tipo, squadre in squadre_rimonte.items():
                     if squadre:
                         st.markdown(f"**{tipo}:** {', '.join(squadre)}")
