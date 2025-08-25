@@ -159,8 +159,13 @@ st.sidebar.subheader("DEBUG: Info Dataset Globale")
 st.sidebar.write(f"Righe totali nel dataset raw: {len(df)}")
 st.sidebar.write(f"Campionati unici: {df['League'].dropna().unique().tolist()}")
 st.sidebar.write(f"Anni unici: {sorted(df['Anno'].dropna().unique().astype(int).tolist())}")
-st.sidebar.write(f"Min Odd_Home: {df['Odd_Home'].min()} Max Odd_Home: {df['Odd_Home'].max()}")
-st.sidebar.write(f"Risultati HT unici: {df['risultato_ht'].dropna().unique().tolist()}")
+# Resilient min/max for Odd_Home
+min_odd_home_debug = df['Odd_Home'].min() if not df['Odd_Home'].dropna().empty else 'N/A'
+max_odd_home_debug = df['Odd_Home'].max() if not df['Odd_Home'].dropna().empty else 'N/A'
+st.sidebar.write(f"Min Odd_Home: {min_odd_home_debug} Max Odd_Home: {max_odd_home_debug}")
+# Resilient unique HT results
+unique_ht_results_debug = df['risultato_ht'].dropna().unique().tolist() if not df['risultato_ht'].dropna().empty else []
+st.sidebar.write(f"Risultati HT unici: {unique_ht_results_debug}")
 
 
 # Filtro League (Campionato) - Deve essere il primo per filtrare le squadre
@@ -1377,8 +1382,8 @@ def calcola_multi_gol(df_to_analyze, col_gol, titolo):
 
 # SEZIONE 1: Analisi Timeband per Campionato
 st.subheader("1. Analisi Timeband per Campionato")
-if selected_league != "Tutte":
-    # df_league_only ora è un sottoinsieme di filtered_df, quindi eredita tutti i filtri generali, inclusi gli anni
+# df_league_only ora è un sottoinsieme di filtered_df, quindi eredita tutti i filtri generali, inclusi gli anni
+if not filtered_df.empty and "League" in filtered_df.columns and selected_league != "Tutte":
     df_league_only_filtered = filtered_df[filtered_df["League"] == selected_league]
     st.write(f"Analisi basata su **{len(df_league_only_filtered)}** partite del campionato **{selected_league}**.")
     st.write("---")
@@ -1390,7 +1395,7 @@ if selected_league != "Tutte":
         st.write("**Distribuzione Gol per Timeframe (5min)**")
         mostra_distribuzione_timeband_5min(df_league_only_filtered)
 else:
-    st.write("Seleziona un campionato per visualizzare questa analisi.")
+    st.write("Seleziona un campionato (non 'Tutte') e assicurati che i filtri generali restituiscano dati per visualizzare questa analisi.")
 
 # SEZIONE 2: Analisi Timeband per Campionato e Quote
 st.subheader("2. Analisi Timeband per Campionato e Quote")
@@ -1970,7 +1975,7 @@ with st.expander("Configura e avvia il Backtest"):
             elif numero_scommesse == 0:
                 st.info("Nessuna scommessa idonea trovata con i filtri e il mercato selezionati.")
 
-# --- NUOVA SEZIONE 7: Analisi Squadra Specifica ---
+# --- SEZIONE 6: Analisi Squadra Specifica ---
 st.subheader("6. Analisi Squadra Specifica") # Rinumerata a 6
 st.write("Analizza le performance di una squadra specifica nelle sue partite in casa o fuori casa.")
 
