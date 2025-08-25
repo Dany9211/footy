@@ -176,7 +176,7 @@ if "Anno" in df.columns:
     # Assicurati che 'Anno' sia numerico prima di prendere min/max
     df_anni_numeric = df["Anno"].dropna()
     if not df_anni_numeric.empty:
-        anni = ["Tutti"] + sorted(df_anni_numeric.unique().astype(int)) # Converti a int per la visualizzazione
+        anni = ["Tutte"] + sorted(df_anni_numeric.unique().astype(int)) # Converti a int per la visualizzazione
         selected_anno = st.sidebar.selectbox("Seleziona Anno", anni)
         if selected_anno != "Tutte":
             filters["Anno"] = selected_anno
@@ -247,13 +247,25 @@ def add_range_filter(col_name, label=None):
             
             if min_val.strip() != "" and max_val.strip() != "":
                 try:
+                    # Converti a float qui e memorizza come float
                     filters[col_name] = (float(min_val), float(max_val))
                 except ValueError:
                     st.sidebar.warning(f"Valori non validi per {label or col_name}. Inserisci numeri.")
+                    # Se i valori non sono validi, assicurati che il filtro non venga impostato
+                    if col_name in filters:
+                        del filters[col_name]
+            else:
+                # Se i campi di input sono vuoti, rimuovi il filtro se esiste
+                if col_name in filters:
+                    del filters[col_name]
         else:
             st.sidebar.info(f"Colonna '{label or col_name}' non contiene valori numerici validi per il filtro.")
+            if col_name in filters: # Rimuovi anche se la colonna è tutta NaN
+                del filters[col_name]
     else:
         st.sidebar.warning(f"Colonna '{label or col_name}' non trovata per il filtro.")
+        if col_name in filters: # Rimuovi anche se la colonna non esiste
+            del filters[col_name]
 
 
 st.sidebar.header("Filtri Quote")
@@ -267,28 +279,40 @@ for col in ["Odd_Over_0.5", "Odd_over_1.5", "Odd_over_2.5", "Odd_Over_3.5", "Odd
 # --- APPLICA FILTRI AL DATAFRAME PRINCIPALE ---
 filtered_df = df.copy()
 for col, val in filters.items():
-    # Per le colonne che usano .between, assicurati che siano numeriche.
-    # La pre-elaborazione dovrebbe aver già fatto il grosso del lavoro.
-    # Questo è un controllo di sicurezza per catturare eventuali residui.
+    # DEBUG: Print types and values before comparison
+    st.write(f"DEBUG: Processing filter for column '{col}'. Type of val: {type(val)}, Value of val: {val}") 
+    
+    # Per i filtri di range numerici
     if col in ["Odd_Home", "Odd_Draw", "Odd__Away", "Odd_Over_0.5", "Odd_over_1.5", 
                 "Odd_over_2.5", "Odd_Over_3.5", "Odd_Over_4.5", "Odd_Under_0.5", 
                 "Odd_Under_1.5", "Odd_Under_2.5", "Odd_Under_3.5", "Odd_Under_4.5", 
                 "BTTS_SI", "Giornata", "Anno"]:
-        # Applica convert_to_float per creare una serie temporanea numerica per il filtro
-        temp_series_for_filter = convert_to_float(filtered_df[col])
         
-        # Converti esplicitamente a float per garantire il dtype corretto per .between
-        # Questo trasforma anche eventuali Int64 (che possono contenere NaN) in float
-        temp_series_for_filter = temp_series_for_filter.astype(float) 
+        # Converte la serie da filtrare in float, gestendo gli errori
+        series_to_filter = convert_to_float(filtered_df[col])
+        
+        # Assicurati che i limiti del filtro siano float validi
+        try:
+            lower_bound = float(val[0])
+            upper_bound = float(val[1])
+        except (ValueError, TypeError) as e:
+            st.warning(f"Errore: i valori del filtro per la colonna '{col}' ({val[0]}, {val[1]}) non sono convertibili in numeri. Dettagli: {e}. Ignoro il filtro.")
+            continue # Salta questo filtro se i limiti non sono validi
 
-        if pd.api.types.is_numeric_dtype(temp_series_for_filter):
-            mask = temp_series_for_filter.between(float(val[0]), float(val[1])) # Assicurati che anche val[0] e val[1] siano float
-            filtered_df = filtered_df[mask.fillna(True)]
-        else:
-            st.warning(f"La colonna '{col}' non è numerica e non può essere filtrata per range. Controlla il tuo CSV.")
+        # DEBUG: Controlla il dtype della serie prima di .between
+        st.write(f"DEBUG: Series '{col}' dtype before between: {series_to_filter.dtype}")
+
+        # Applica il filtro. La serie è già numerica (float o NaN) e i limiti sono float.
+        mask = series_to_filter.between(lower_bound, upper_bound)
+        filtered_df = filtered_df[mask.fillna(True)]
     elif col == "risultato_ht":
-        filtered_df = filtered_df[filtered_df[col].isin(val)]
-    else:
+        # Per i filtri multiselect, val è una lista di stringhe
+        if isinstance(val, list):
+            filtered_df = filtered_df[filtered_df[col].isin(val)]
+        else:
+            st.warning(f"Errore: il valore del filtro per la colonna '{col}' non è una lista come previsto. Ignoro il filtro.")
+            continue
+    else: # Per i filtri a selezione singola (es. League, Home_Team, Away_Team)
         filtered_df = filtered_df[filtered_df[col] == val]
 
 st.subheader("Dati Filtrati")
@@ -930,8 +954,11 @@ def mostra_distribuzione_timeband(df_to_analyze):
     for (start, end), label in zip(intervalli, label_intervalli):
         partite_con_gol = 0
         for _, row in df_to_analyze.iterrows():
-            gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
-            gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
+            gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+            gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
+
+            gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit()]
+            gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit()]
             if any(start <= g <= end for g in gol_home + gol_away):
                 partite_con_gol += 1
         perc = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
