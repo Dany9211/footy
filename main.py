@@ -140,12 +140,12 @@ else:
     filtered_teams_df = df.copy()
     selected_league = "Tutte"
 
-# Filtro Anno
-if "Anno" in df.columns:
-    anni = ["Tutti"] + sorted(df["Anno"].dropna().unique())
-    selected_anno = st.sidebar.selectbox("Seleziona Anno", anni)
+# Filtro anno
+if "anno" in df.columns:
+    anni = ["Tutti"] + sorted(df["anno"].dropna().unique())
+    selected_anno = st.sidebar.selectbox("Seleziona anno", anni)
     if selected_anno != "Tutte":
-        filters["Anno"] = selected_anno
+        filters["anno"] = selected_anno
 
 # Filtro Giornata
 if "Giornata" in df.columns:
@@ -221,16 +221,16 @@ for col, val in filters.items():
 st.subheader("Dati Filtrati")
 st.write(f"**Righe visualizzate:** {len(filtered_df)}")
 
-# --- NUOVA SEZIONE: Riepilogo Risultati per Anno ---
+# --- NUOVA SEZIONE: Riepilogo Risultati per anno ---
 st.markdown("---")
-st.subheader("Riepilogo partite per Anno")
-if not filtered_df.empty and "Anno" in filtered_df.columns:
-    partite_per_anno = filtered_df["Anno"].value_counts().sort_index()
+st.subheader("Riepilogo partite per anno")
+if not filtered_df.empty and "anno" in filtered_df.columns:
+    partite_per_anno = filtered_df["anno"].value_counts().sort_index()
     riepilogo_df = pd.DataFrame(partite_per_anno).reset_index()
-    riepilogo_df.columns = ["Anno", "Partite Trovate"]
+    riepilogo_df.columns = ["anno", "Partite Trovate"]
     st.table(riepilogo_df)
 else:
-    st.info("Nessuna partita trovata o la colonna 'Anno' non è disponibile nel dataset.")
+    st.info("Nessuna partita trovata o la colonna 'anno' non è disponibile nel dataset.")
 st.markdown("---")
 # --- FINE NUOVA SEZIONE ---
 
