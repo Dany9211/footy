@@ -10,17 +10,51 @@ st.title("Analisi Tabella 23agosto2023")
 def load_data(uploaded_file):
     """
     Carica i dati da un file CSV caricato dall'utente.
-    Aggiunto on_bad_lines='skip' per gestire righe malformate.
+    Tenta diverse strategie di parsing per gestire potenziali errori
+    e fornisce feedback specifico in caso di fallimento.
     """
     if uploaded_file is not None:
+        # Resetta il puntatore del file per tentativi di lettura multipli
+        uploaded_file.seek(0)
+        
+        # Strategia 1: Delimitatore ';' e codifica UTF-8, salta righe malformate
         try:
-            # Assumiamo che il delimitatore sia ';' come nel tuo file di esempio
-            # Utilizziamo on_bad_lines='skip' per ignorare le righe che causano errori di parsing
             df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8', on_bad_lines='skip')
-            return df
+            # Verifica se il DataFrame è stato letto correttamente (non vuoto e con più di una colonna)
+            if not df.empty and len(df.columns) > 1:
+                st.success("File CSV caricato con successo (delimitatore ';', codifica utf-8).")
+                return df
+            uploaded_file.seek(0) # Resetta per il prossimo tentativo
         except Exception as e:
-            st.error(f"Errore durante la lettura del file CSV: {e}")
-            return pd.DataFrame()
+            st.warning(f"Tentativo 1 (';', utf-8) fallito: {e}")
+            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+
+        # Strategia 2: Delimitatore ';' e codifica Latin-1, salta righe malformate
+        try:
+            df = pd.read_csv(uploaded_file, sep=';', encoding='latin1', on_bad_lines='skip')
+            if not df.empty and len(df.columns) > 1:
+                st.success("File CSV caricato con successo (delimitatore ';', codifica latin1).")
+                return df
+            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+        except Exception as e:
+            st.warning(f"Tentativo 2 (';', latin1) fallito: {e}")
+            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+
+        # Strategia 3: Delimitatore ',' e codifica UTF-8, usa il motore Python, salta righe malformate
+        # Il motore 'python' è più flessibile con i formati irregolari.
+        try:
+            df = pd.read_csv(uploaded_file, sep=',', encoding='utf-8', on_bad_lines='skip', engine='python')
+            if not df.empty and len(df.columns) > 1:
+                st.success("File CSV caricato con successo (delimitatore ',', codifica utf-8, motore python).")
+                return df
+            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+        except Exception as e:
+            st.warning(f"Tentativo 3 (',', utf-8, python engine) fallito: {e}")
+            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+
+        # Se tutte le strategie falliscono
+        st.error("Impossibile leggere il file CSV con le strategie di parsing automatiche. Controlla il formato del file, il delimitatore (punto e virgola o virgola) e la codifica.")
+        return pd.DataFrame()
     return pd.DataFrame()
 
 # --- Caricamento dati iniziali tramite file upload ---
@@ -67,7 +101,7 @@ else:
 if "Anno" in df.columns:
     anni = ["Tutti"] + sorted(df["Anno"].dropna().unique())
     selected_anno = st.sidebar.selectbox("Seleziona Anno", anni)
-    if selected_anno != "Tutti":
+    if selected_anno != "Tutte":
         filters["Anno"] = selected_anno
 
 # Filtro Giornata
@@ -1955,4 +1989,3 @@ with st.expander("Configura e avvia il Backtest"):
                 st.metric("Odd Minima per profitto", f"{odd_minima:.2f}")
             elif numero_scommesse == 0:
                 st.info("Nessuna scommessa idonea trovata con i filtri e il mercato selezionati.")
-
