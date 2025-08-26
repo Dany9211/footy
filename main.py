@@ -58,7 +58,7 @@ def load_data(uploaded_file):
             if not df.empty and len(df.columns) > 1:
                 st.success(f"File CSV caricato con successo (delimitatore auto-rilevato, motore python). Colonne: {df.columns.tolist()}")
                 return df
-            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+            uploaded_file.seek(0) # Resetta per el prossimo tentativo
         except Exception as e:
             st.error(f"Errore di caricamento (auto-delimitatore, python engine): {e}. Tentativo successivo...")
             uploaded_file.seek(0) # Resetta per el prossimo tentativo
@@ -986,6 +986,13 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
             continue
 
         partite_con_gol = 0
+        partite_con_almeno_1_gol = 0
+        partite_con_almeno_2_gol = 0
+        gol_fatti_home = 0
+        gol_subiti_home = 0
+        gol_fatti_away = 0
+        gol_subiti_away = 0
+
         for _, row in df_to_analyze.iterrows():
             gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
             gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
@@ -993,24 +1000,55 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
             gol_home = [int(x) for x in gol_home_str.split(";") if x.isdigit()]
             gol_away = [int(x) for x in gol_away_str.split(";") if x.isdigit()]
             
-            # Conta i gol solo se cadono all'interno dell'intervallo corrente E sono dopo o al min_start_display
-            goals_in_relevant_part_of_interval = [
-                g for g in (gol_home + gol_away) 
-                if max(start_interval, min_start_display) <= g <= end_interval
-            ]
+            # Gol effettivi in questo intervallo, considerando min_start_display
+            goals_in_interval_home = [g for g in gol_home if max(start_interval, min_start_display) <= g <= end_interval]
+            goals_in_interval_away = [g for g in gol_away if max(start_interval, min_start_display) <= g <= end_interval]
             
-            if goals_in_relevant_part_of_interval:
+            total_goals_in_interval = len(goals_in_interval_home) + len(goals_in_interval_away)
+
+            if total_goals_in_interval > 0:
                 partite_con_gol += 1
+            if total_goals_in_interval >= 1:
+                partite_con_almeno_1_gol += 1
+            if total_goals_in_interval >= 2:
+                partite_con_almeno_2_gol += 1
+
+            gol_fatti_home += len(goals_in_interval_home)
+            gol_subiti_home += len(goals_in_interval_away) # Gol subiti dalla casa = gol fatti dall'away
+            gol_fatti_away += len(goals_in_interval_away)
+            gol_subiti_away += len(goals_in_interval_home) # Gol subiti dall'away = gol fatti dalla casa
         
         perc = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
         odd_min = round(100 / perc, 2) if perc > 0 else "-"
-        risultati.append([label, partite_con_gol, perc, odd_min])
+        risultati.append([
+            label, 
+            partite_con_gol, 
+            perc, 
+            odd_min, 
+            partite_con_almeno_1_gol, 
+            partite_con_almeno_2_gol,
+            gol_fatti_home, 
+            gol_subiti_home, 
+            gol_fatti_away, 
+            gol_subiti_away
+        ])
     
     if not risultati: # Se tutti gli intervalli sono stati saltati
         st.info(f"Nessun intervallo di tempo rilevante dopo il minuto {min_start_display} per l'analisi a 15 minuti.")
         return
 
-    df_result = pd.DataFrame(risultati, columns=["Timeframe", "Partite con Gol", "Percentuale %", "Odd Minima"])
+    df_result = pd.DataFrame(risultati, columns=[
+        "Timeframe", 
+        "Partite con Gol", 
+        "Percentuale %", 
+        "Odd Minima",
+        ">= 1 Gol",
+        ">= 2 Gol",
+        "Gol Fatti Casa",
+        "Gol Subiti Casa",
+        "Gol Fatti Trasferta",
+        "Gol Subiti Trasferta"
+    ])
     styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
     st.dataframe(styled_df)
 
@@ -1028,27 +1066,66 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
             continue
 
         partite_con_gol = 0
+        partite_con_almeno_1_gol = 0
+        partite_con_almeno_2_gol = 0
+        gol_fatti_home = 0
+        gol_subiti_home = 0
+        gol_fatti_away = 0
+        gol_subiti_away = 0
+
         for _, row in df_to_analyze.iterrows():
             gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
             gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
             
-            # Conta i gol solo se cadono all'interno dell'intervallo corrente E sono dopo o al min_start_display
-            goals_in_relevant_part_of_interval = [
-                g for g in (gol_home + gol_away) 
-                if max(start_interval, min_start_display) <= g <= end_interval
-            ]
+            # Gol effettivi in questo intervallo, considerando min_start_display
+            goals_in_interval_home = [g for g in gol_home if max(start_interval, min_start_display) <= g <= end_interval]
+            goals_in_interval_away = [g for g in gol_away if max(start_interval, min_start_display) <= g <= end_interval]
+            
+            total_goals_in_interval = len(goals_in_interval_home) + len(goals_in_interval_away)
 
-            if goals_in_relevant_part_of_interval:
+            if total_goals_in_interval > 0:
                 partite_con_gol += 1
+            if total_goals_in_interval >= 1:
+                partite_con_almeno_1_gol += 1
+            if total_goals_in_interval >= 2:
+                partite_con_almeno_2_gol += 1
+
+            gol_fatti_home += len(goals_in_interval_home)
+            gol_subiti_home += len(goals_in_interval_away)
+            gol_fatti_away += len(goals_in_interval_away)
+            gol_subiti_away += len(goals_in_interval_home)
+            
         perc = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
         odd_min = round(100 / perc, 2) if perc > 0 else "-"
-        risultati.append([label, partite_con_gol, perc, odd_min])
+        risultati.append([
+            label, 
+            partite_con_gol, 
+            perc, 
+            odd_min,
+            partite_con_almeno_1_gol,
+            partite_con_almeno_2_gol,
+            gol_fatti_home,
+            gol_subiti_home,
+            gol_fatti_away,
+            gol_subiti_away
+        ])
     
     if not risultati: # Se tutti gli intervalli sono stati saltati
         st.info(f"Nessun intervallo di tempo rilevante dopo il minuto {min_start_display} per l'analisi a 5 minuti.")
         return
 
-    df_result = pd.DataFrame(risultati, columns=["Timeframe", "Partite con Gol", "Percentuale %", "Odd Minima"])
+    df_result = pd.DataFrame(risultati, columns=[
+        "Timeframe", 
+        "Partite con Gol", 
+        "Percentuale %", 
+        "Odd Minima",
+        ">= 1 Gol",
+        ">= 2 Gol",
+        "Gol Fatti Casa",
+        "Gol Subiti Casa",
+        "Gol Fatti Trasferta",
+        "Gol Subiti Trasferta"
+    ])
     styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
     st.dataframe(styled_df)
 
