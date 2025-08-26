@@ -1,7 +1,6 @@
 streamlit
 pandas
 numpy
-lifelines
-scikit-learn
-joblib
-train_test_split
+sqlalchemy
+psycopg2-binary
+matplotlib
