@@ -505,12 +505,17 @@ def calcola_stats_sh(df_to_analyze):
 
     btts_sh_count = ((df_sh["gol_home_sh"] > 0) & (df_sh["gol_away_sh"] > 0)).sum()
     no_btts_sh_count = len(df_sh) - btts_sh_count
-    btts_sh_data = [
-        ["BTTS SI SH", btts_sh_count, round((btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0],
-        ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0]
-    ]
+    btts_sh_data = []
+    
+    perc_si = round((btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0
+    odd_min_si = round(100 / perc_si, 2) if perc_si > 0 else np.nan
+    btts_sh_data.append(["BTTS SI SH", btts_sh_count, perc_si, odd_min_si])
+
+    perc_no = round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0
+    odd_min_no = round(100 / perc_no, 2) if perc_no > 0 else np.nan
+    btts_sh_data.append(["BTTS NO SH", no_btts_count, perc_no, odd_min_no])
+    
     df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
-    df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
     df_btts_sh["Odd Minima"] = df_btts_sh["Odd Minima"].fillna('-').astype(str)
     
     return df_winrate_sh, df_over_sh, df_btts_sh
@@ -774,7 +779,7 @@ def calcola_winrate(df, col_risultato):
         perc = round((count / totale) * 100, 2) if totale > 0 else 0
         odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         stats.append((esito, count, perc, odd_min))
-    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "WinRate %", "Odd Minima"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"]) # Changed 'WinRate %' to 'Percentuale %'
     df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
@@ -1398,11 +1403,11 @@ def calcola_btts_ft_after_current_minute(df_to_analyze, current_minute_filter_va
     
     perc_si = round((btts_si_count / total_matches) * 100, 2) if total_matches > 0 else 0
     odd_min_si = round(100 / perc_si, 2) if perc_si > 0 else np.nan
-    data.append(["BTTS SI (risultato finale)", btts_si_count, perc_si, odd_min_si])
+    data.append(["BTTS SI (dopo minuto attuale)", btts_si_count, perc_si, odd_min_si])
 
     perc_no = round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0
     odd_min_no = round(100 / perc_no, 2) if perc_no > 0 else np.nan
-    data.append(["BTTS NO (risultato finale)", no_btts_count, perc_no, odd_min_no])
+    data.append(["BTTS NO (dopo minuto attuale)", no_btts_count, perc_no, odd_min_no])
     
     df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
     df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
@@ -1744,7 +1749,7 @@ if not filtered_df.empty:
         st.subheader(f"WinRate HT ({len(filtered_df)})")
         df_winrate_ht = calcola_winrate(filtered_df, "risultato_ht")
         if not df_winrate_ht.empty:
-            styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+            styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']) # Corrected subset
             st.dataframe(styled_df_ht)
         else:
             st.info("Nessun WinRate HT disponibile per i filtri selezionati.")
@@ -1929,7 +1934,7 @@ if not filtered_df.empty:
         st.subheader(f"WinRate FT ({len(filtered_df)})")
         df_winrate_ft = calcola_winrate(filtered_df, "risultato_ft")
         if not df_winrate_ft.empty:
-            styled_df_ft = df_winrate_ft.style.background_gradient(cmap='RdYlGn', subset=['WinRate %']) # Corrected subset
+            styled_df_ft = df_winrate_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']) # Corrected subset
             st.dataframe(styled_df_ft)
         else:
             st.info("Nessun WinRate FT disponibile per i filtri selezionati.")
@@ -2088,14 +2093,14 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             st.write("**HT:**")
             df_winrate_ht_dynamic = calcola_winrate(df_target, "risultato_ht")
             if not df_winrate_ht_dynamic.empty:
-                styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %']) # Corrected subset
+                styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']) # Corrected subset
                 st.dataframe(styled_df_ht)
             else:
                 st.info("Nessun WinRate HT dinamico disponibile.")
             st.write("**FT:**")
             df_winrate_ft_dynamic = calcola_winrate(df_target, "risultato_ft")
             if not df_winrate_ft_dynamic.empty:
-                styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %']) # Corrected subset
+                styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']) # Corrected subset
                 st.dataframe(styled_df_ft)
             else:
                 st.info("Nessun WinRate FT dinamico disponibile.")
