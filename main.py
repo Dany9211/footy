@@ -1744,7 +1744,7 @@ if not filtered_df.empty:
         st.subheader(f"WinRate HT ({len(filtered_df)})")
         df_winrate_ht = calcola_winrate(filtered_df, "risultato_ht")
         if not df_winrate_ht.empty:
-            styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
             st.dataframe(styled_df_ht)
         else:
             st.info("Nessun WinRate HT disponibile per i filtri selezionati.")
@@ -1832,7 +1832,7 @@ if not filtered_df.empty:
             stats_sh_winrate.append((esito, count, perc, odd_min))
         df_winrate_sh = pd.DataFrame(stats_sh_winrate, columns=["Esito", "Conteggio", "WinRate %", "Odd Minima"])
         df_winrate_sh["Odd Minima"] = df_winrate_sh["Odd Minima"].fillna('-').astype(str)
-        styled_df = df_winrate_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+        styled_df = df_winrate_sh.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
         st.dataframe(styled_df)
 
         st.subheader(f"Over Goals SH ({len(filtered_df)})")
@@ -1929,7 +1929,7 @@ if not filtered_df.empty:
         st.subheader(f"WinRate FT ({len(filtered_df)})")
         df_winrate_ft = calcola_winrate(filtered_df, "risultato_ft")
         if not df_winrate_ft.empty:
-            styled_df_ft = df_winrate_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            styled_df_ft = df_winrate_ft.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
             st.dataframe(styled_df_ft)
         else:
             st.info("Nessun WinRate FT disponibile per i filtri selezionati.")
@@ -2088,14 +2088,14 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             st.write("**HT:**")
             df_winrate_ht_dynamic = calcola_winrate(df_target, "risultato_ht")
             if not df_winrate_ht_dynamic.empty:
-                styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
                 st.dataframe(styled_df_ht)
             else:
                 st.info("Nessun WinRate HT dinamico disponibile.")
             st.write("**FT:**")
             df_winrate_ft_dynamic = calcola_winrate(df_target, "risultato_ft")
             if not df_winrate_ft_dynamic.empty:
-                styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
                 st.dataframe(styled_df_ft)
             else:
                 st.info("Nessun WinRate FT dinamico disponibile.")
