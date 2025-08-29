@@ -858,7 +858,6 @@ def mostra_risultati_esatti(df, col_risultato, titolo):
     df_valid = df[df[col_risultato].notna() & (df[col_risultato].str.contains("-"))].copy()
 
     if df_valid.empty:
-        # Non stampiamo qui il subheader o l'info, lo farà la sezione chiamante
         return pd.DataFrame(columns=[titolo, "Conteggio", "Percentuale %", "Odd Minima"])
 
     def classifica_risultato(ris):
@@ -882,7 +881,7 @@ def mostra_risultati_esatti(df, col_risultato, titolo):
     distribuzione["Odd Minima"] = distribuzione["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
     distribuzione["Odd Minima"] = distribuzione["Odd Minima"].fillna('-').astype(str)
 
-    return distribuzione # Solo restituisce il DataFrame
+    return distribuzione
 
 def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0):
     if df_to_analyze.empty:
@@ -1373,11 +1372,24 @@ def calcola_btts_dinamico(df_to_analyze, current_minute_filter_val):
         goals_home_after = sum(1 for g in [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()] if g > current_minute_filter_val)
         goals_away_after = sum(1 for g in [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()] if g > current_minute_filter_val)
 
-        # Check if both teams have scored by the end of the match, considering goals before and after current_minute_filter_val
-        final_home_goals = score_home_at_current_minute + goals_home_after
-        final_away_goals = score_away_at_current_minute + goals_away_after
+        # Determine if BTTS happened considering the state at current_minute_filter_val
+        home_scored_already = score_home_at_current_minute > 0
+        away_scored_already = score_away_at_current_minute > 0
 
-        if final_home_goals > 0 and final_away_goals > 0:
+        btts_achieved = False
+        if home_scored_already and away_scored_already:
+            btts_achieved = True # Already BTTS at current minute
+        elif home_scored_already and not away_scored_already:
+            if goals_away_after > 0: # Away scores after current minute
+                btts_achieved = True
+        elif not home_scored_already and away_scored_already:
+            if goals_home_after > 0: # Home scores after current minute
+                btts_achieved = True
+        elif not home_scored_already and not away_scored_already:
+            if goals_home_after > 0 and goals_away_after > 0: # Both score after current minute
+                btts_achieved = True
+        
+        if btts_achieved:
             btts_si_count += 1
 
     no_btts_count = total_matches - btts_si_count
@@ -1386,11 +1398,11 @@ def calcola_btts_dinamico(df_to_analyze, current_minute_filter_val):
     
     perc_si = round((btts_si_count / total_matches) * 100, 2) if total_matches > 0 else 0
     odd_min_si = round(100 / perc_si, 2) if perc_si > 0 else np.nan
-    data.append(["BTTS SI (risultato finale)", btts_si_count, perc_si, odd_min_si])
+    data.append(["BTTS SI (dopo minuto attuale)", btts_si_count, perc_si, odd_min_si])
 
     perc_no = round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0
     odd_min_no = round(100 / perc_no, 2) if perc_no > 0 else np.nan
-    data.append(["BTTS NO (risultato finale)", no_btts_count, perc_no, odd_min_no])
+    data.append(["BTTS NO (dopo minuto attuale)", no_btts_count, perc_no, odd_min_no])
     
     df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
     df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
@@ -1731,8 +1743,12 @@ if not filtered_df.empty:
 
         st.subheader(f"WinRate HT ({len(filtered_df)})")
         df_winrate_ht = calcola_winrate(filtered_df, "risultato_ht")
-        styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-        st.dataframe(styled_df_ht)
+        if not df_winrate_ht.empty: # Aggiunto controllo di vuoto
+            styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_df_ht)
+        else:
+            st.info("Nessun WinRate HT disponibile per i filtri selezionati.")
+
         st.subheader(f"Over Goals HT ({len(filtered_df)})")
         over_ht_data = []
         df_prematch_ht = filtered_df.copy()
@@ -1764,17 +1780,33 @@ if not filtered_df.empty:
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("#### Fatti Casa")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'home', 'fatti', 'ht').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_fatti_home_ht = calcola_goals_per_team_period(filtered_df, 'home', 'fatti', 'ht')
+            if not df_goals_fatti_home_ht.empty:
+                st.dataframe(df_goals_fatti_home_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
         with col2:
             st.markdown("#### Subiti Casa")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'home', 'subiti', 'ht').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_subiti_home_ht = calcola_goals_per_team_period(filtered_df, 'home', 'subiti', 'ht')
+            if not df_goals_subiti_home_ht.empty:
+                st.dataframe(df_goals_subiti_home_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
         col3, col4 = st.columns(2)
         with col3:
             st.markdown("#### Fatti Trasferta")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'away', 'fatti', 'ht').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_fatti_away_ht = calcola_goals_per_team_period(filtered_df, 'away', 'fatti', 'ht')
+            if not df_goals_fatti_away_ht.empty:
+                st.dataframe(df_goals_fatti_away_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
         with col4:
             st.markdown("#### Subiti Trasferta")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'away', 'subiti', 'ht').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_subiti_away_ht = calcola_goals_per_team_period(filtered_df, 'away', 'subiti', 'ht')
+            if not df_goals_subiti_away_ht.empty:
+                st.dataframe(df_goals_subiti_away_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
     
     with st.expander("Mostra Statistiche SH (Secondo Tempo)"):
         st.write(f"Analisi basata su **{len(filtered_df)}** partite.")
@@ -1823,7 +1855,8 @@ if not filtered_df.empty:
             ["BTTS SI SH", btts_sh_count, round((btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0],
             ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0]
         ]
-        df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+        df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %"])
+        df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
         df_btts_sh["Odd Minima"] = df_btts_sh["Odd Minima"].fillna('-').astype(str)
         styled_df = df_btts_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df)
@@ -1857,17 +1890,33 @@ if not filtered_df.empty:
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("#### Fatti Casa")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'home', 'fatti', 'sh').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_fatti_home_sh = calcola_goals_per_team_period(filtered_df, 'home', 'fatti', 'sh')
+            if not df_goals_fatti_home_sh.empty:
+                st.dataframe(df_goals_fatti_home_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
         with col2:
             st.markdown("#### Subiti Casa")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'home', 'subiti', 'sh').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_subiti_home_sh = calcola_goals_per_team_period(filtered_df, 'home', 'subiti', 'sh')
+            if not df_goals_subiti_home_sh.empty:
+                st.dataframe(df_goals_subiti_home_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
         col3, col4 = st.columns(2)
         with col3:
             st.markdown("#### Fatti Trasferta")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'away', 'fatti', 'sh').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_fatti_away_sh = calcola_goals_per_team_period(filtered_df, 'away', 'fatti', 'sh')
+            if not df_goals_fatti_away_sh.empty:
+                st.dataframe(df_goals_fatti_away_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
         with col4:
             st.markdown("#### Subiti Trasferta")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'away', 'subiti', 'sh').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_subiti_away_sh = calcola_goals_per_team_period(filtered_df, 'away', 'subiti', 'sh')
+            if not df_goals_subiti_away_sh.empty:
+                st.dataframe(df_goals_subiti_away_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
 
     with st.expander("Mostra Statistiche FT (Finale)"):
         st.subheader(f"Risultati Esatti FT ({len(filtered_df)})")
@@ -1879,8 +1928,12 @@ if not filtered_df.empty:
 
         st.subheader(f"WinRate FT ({len(filtered_df)})")
         df_winrate_ft = calcola_winrate(filtered_df, "risultato_ft")
-        styled_df_ft = df_winrate_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-        st.dataframe(styled_df_ft)
+        if not df_winrate_ft.empty: # Aggiunto controllo di vuoto
+            styled_df_ft = df_winrate_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_df_ft)
+        else:
+            st.info("Nessun WinRate FT disponibile per i filtri selezionati.")
+
         st.subheader(f"Over Goals FT ({len(filtered_df)})")
         over_ft_data = []
         df_prematch_ft = filtered_df.copy()
@@ -1946,17 +1999,33 @@ if not filtered_df.empty:
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("#### Fatti Casa")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'home', 'fatti', 'ft').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_fatti_home_ft = calcola_goals_per_team_period(filtered_df, 'home', 'fatti', 'ft')
+            if not df_goals_fatti_home_ft.empty:
+                st.dataframe(df_goals_fatti_home_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
         with col2:
             st.markdown("#### Subiti Casa")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'home', 'subiti', 'ft').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_subiti_home_ft = calcola_goals_per_team_period(filtered_df, 'home', 'subiti', 'ft')
+            if not df_goals_subiti_home_ft.empty:
+                st.dataframe(df_goals_subiti_home_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
         col3, col4 = st.columns(2)
         with col3:
             st.markdown("#### Fatti Trasferta")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'away', 'fatti', 'ft').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_fatti_away_ft = calcola_goals_per_team_period(filtered_df, 'away', 'fatti', 'ft')
+            if not df_goals_fatti_away_ft.empty:
+                st.dataframe(df_goals_fatti_away_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
         with col4:
             st.markdown("#### Subiti Trasferta")
-            st.dataframe(calcola_goals_per_team_period(filtered_df, 'away', 'subiti', 'ft').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            df_goals_subiti_away_ft = calcola_goals_per_team_period(filtered_df, 'away', 'subiti', 'ft')
+            if not df_goals_subiti_away_ft.empty:
+                st.dataframe(df_goals_subiti_away_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun dato disponibile.")
 
 else:
     st.warning("Nessuna partita corrisponde ai filtri selezionati per l'analisi pre-match.")
@@ -2018,12 +2087,18 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             st.subheader(f"WinRate (Dinamica) ({len(df_target)})")
             st.write("**HT:**")
             df_winrate_ht_dynamic = calcola_winrate(df_target, "risultato_ht")
-            styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-            st.dataframe(styled_df_ht)
+            if not df_winrate_ht_dynamic.empty:
+                styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                st.dataframe(styled_df_ht)
+            else:
+                st.info("Nessun WinRate HT dinamico disponibile.")
             st.write("**FT:**")
             df_winrate_ft_dynamic = calcola_winrate(df_target, "risultato_ft")
-            styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-            st.dataframe(styled_df_ft)
+            if not df_winrate_ft_dynamic.empty:
+                styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                st.dataframe(styled_df_ft)
+            else:
+                st.info("Nessun WinRate FT dinamico disponibile.")
             
             col1, col2 = st.columns(2)
             df_target_goals["tot_goals_ht"] = df_target_goals["Gol_Home_HT"] + df_target_goals["Gol_Away_HT"]
@@ -2210,13 +2285,19 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
             with col1:
                 st.subheader(f"WinRate HT H2H ({len(h2h_df)})")
                 df_winrate_ht_h2h = calcola_winrate(h2h_df, "risultato_ht")
-                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-                st.dataframe(styled_df_ht)
+                if not df_winrate_ht_h2h.empty:
+                    styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                    st.dataframe(styled_df_ht)
+                else:
+                    st.info("Nessun WinRate HT H2H disponibile.")
             with col2:
                 st.subheader(f"WinRate FT H2H ({len(h2h_df)})")
                 df_winrate_ft_h2h = calcola_winrate(h2h_df, "risultato_ft")
-                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-                st.dataframe(styled_df_ft)
+                if not df_winrate_ft_h2h.empty:
+                    styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                    st.dataframe(styled_df_ft)
+                else:
+                    st.info("Nessun WinRate FT H2H disponibile.")
             
             st.subheader(f"Doppia Chance (H2H) ({len(h2h_df)})")
             col1, col2 = st.columns(2)
