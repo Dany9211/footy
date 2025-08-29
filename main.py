@@ -47,10 +47,10 @@ def load_data(uploaded_file):
             if not df.empty and len(df.columns) > 1:
                 st.success(f"File CSV caricato con successo (delimitatore ',', codifica utf-8, motore python). Colonne: {df.columns.tolist()}")
                 return df
-            uploaded_file.seek(0) # Resetta per el prossimo tentativo
+            uploaded_file.seek(0) # Resetta per il prossimo tentativo
         except Exception as e:
             st.error(f"Errore di caricamento (',', utf-8, python engine): {e}. Tentativo successivo...")
-            uploaded_file.seek(0) # Resetta per el prossimo tentativo
+            uploaded_file.seek(0) # Resetta per il prossimo tentativo
 
         # Strategia 4: Rilevamento automatico del delimitatore, motore Python, salta righe malformate
         try:
@@ -763,7 +763,7 @@ def calcola_to_score_sh(df_to_analyze):
     
     total_matches = len(df_to_score)
     
-    stats = [
+    data = [ # Renamed from 'stats' to 'data'
         ["Home Team to Score SH", home_to_score_count, round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0],
         ["Away Team to Score SH", away_to_score_count, round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0]
     ]
