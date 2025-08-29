@@ -1180,8 +1180,8 @@ def mostra_distribuzione_timeband_custom(df_to_analyze, min_start_display=0):
         return
 
     # Nuovi intervalli personalizzati, incluso 46-75
-    custom_intervalli = [(1, 20), (21, 45), (46, 70), (46, 75), (70, 90), (75, 90), (80, 90), (85, 95)]
-    custom_label_intervalli = ["1-20", "21-45", "46-70", "46-75", "70-90", "75-90", "80-90", "85-95"]
+    custom_intervalli = [(1, 10), (11, 20), (21, 30), (31, 40), (41, 45), (46, 55), (56, 65), (66, 75), (76, 85), (86, 90)]
+    custom_label_intervalli = ["1-10", "11-20", "21-30", "31-40", "41-45", "46-55", "56-65", "66-75", "76-85", "86-90"]
 
     risultati = []
     total_matches = len(df_to_analyze)
@@ -2714,6 +2714,22 @@ if not df_base_section7.empty:
                 # La funzione calcola_btts_dinamico è già stata adattata per calcolare il BTTS dopo il minuto attuale
                 styled_df_btts_after_current_minute = df_btts_ft_after_current_minute.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df_btts_after_current_minute)
+                
+                st.markdown("---")
+                st.subheader("Distribuzione Gol per Timeframe (partite filtrate)")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.write("**15min**")
+                    # Passa il DataFrame filtrato dalla funzione di analisi e il minuto attuale
+                    mostra_distribuzione_timeband(df_exact_scores_ft.copy(), min_start_display=current_minute_filter)
+                with col2:
+                    st.write("**5min**")
+                    # Passa il DataFrame filtrato dalla funzione di analisi e il minuto attuale
+                    mostra_distribuzione_timeband_5min(df_exact_scores_ft.copy(), min_start_display=current_minute_filter)
+                with col3:
+                    st.write("**Personalizzata**")
+                    # Passa il DataFrame filtrato dalla funzione di analisi e il minuto attuale
+                    mostra_distribuzione_timeband_custom(df_exact_scores_ft.copy(), min_start_display=current_minute_filter)
 
             else:
                 st.info("Nessuna partita trovata con i criteri selezionati per l'analisi dinamica avanzata.")
