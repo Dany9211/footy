@@ -860,7 +860,7 @@ def mostra_risultati_esatti(df, col_risultato, titolo):
     if df_valid.empty:
         st.subheader(f"Risultati Esatti {titolo} (0 partite)")
         st.info("Nessun dato valido per i risultati esatti nel dataset filtrato.")
-        return pd.DataFrame() # Ensure to return an empty DataFrame
+        return pd.DataFrame(columns=[titolo, "Conteggio", "Percentuale %", "Odd Minima"])
 
     def classifica_risultato(ris):
         try:
@@ -886,7 +886,7 @@ def mostra_risultati_esatti(df, col_risultato, titolo):
     st.subheader(f"Risultati Esatti {titolo} ({len(df_valid)} partite)")
     styled_df = distribuzione.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
     st.dataframe(styled_df)
-    return distribuzione # Return the DataFrame for further use
+    return distribuzione
 
 def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0):
     if df_to_analyze.empty:
