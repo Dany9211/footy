@@ -1595,6 +1595,187 @@ def calcola_multi_gol(df_to_analyze, col_gol, titolo):
     df_stats = pd.DataFrame(data, columns=[f"Mercato ({titolo})", "Conteggio", "Percentuale %", "Odd Minima"])
     return df_stats
 
+# --- HELPER FUNCTION: Ottiene il punteggio a un minuto specifico ---
+def get_score_at_minute(row, target_minute):
+    gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+    gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
+
+    gol_home_minutes = [int(x) for x in gol_home_str.split(";") if x.isdigit()]
+    gol_away_minutes = [int(x) for x in gol_away_str.split(";") if x.isdigit()]
+
+    score_home = sum(1 for g_min in gol_home_minutes if g_min <= target_minute)
+    score_away = sum(1 for g_min in gol_away_minutes if g_min <= target_minute)
+    return f"{score_home}-{score_away}"
+
+# --- NUOVA FUNZIONE PER ANALISI DINAMICA AVANZATA (SEZIONE 7) ---
+def calcola_analisi_dinamica_avanzata(df_base, first_goal_result_at_minute_str, first_goal_timeband_label, 
+                                     current_minute_filter_val,
+                                     second_goal_result_at_minute_str=None, second_goal_timeband_label=None,
+                                     min_odd_home=None, max_odd_home=None, min_odd_away=None, max_odd_away=None):
+    
+    df_filtered_step1 = pd.DataFrame()
+    primo_gol_timebands = [(1, 10), (11, 20), (21, 30), (31, 40), (41, 45), (46, 55), (56, 65), (66, 75), (76, 85), (86, 90)]
+    primo_gol_label_timebands = ["1-10", "11-20", "21-30", "31-40", "41-45", "46-55", "56-65", "66-75", "76-85", "86-90"]
+
+    # Applica filtri quote se forniti
+    df_current_filtered = df_base.copy()
+    if min_odd_home is not None and max_odd_home is not None:
+        df_current_filtered = df_current_filtered[df_current_filtered["Odd_Home"].between(min_odd_home, max_odd_home)]
+    if min_odd_away is not None and max_odd_away is not None:
+        df_current_filtered = df_current_filtered[df_current_filtered["Odd__Away"].between(min_odd_away, max_odd_away)]
+
+    # Trova l'intervallo di tempo per il primo gol
+    first_goal_interval = None
+    for i, label in enumerate(primo_gol_label_timebands):
+        if label == first_goal_timeband_label:
+            first_goal_interval = primo_gol_timebands[i]
+            break
+
+    if first_goal_interval is None:
+        st.error(f"Timeband primo gol '{first_goal_timeband_label}' non valido.")
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    for _, row in df_current_filtered.iterrows():
+        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
+
+        all_goals_minutes = []
+        if gol_home_str:
+            all_goals_minutes.extend([int(x) for x in gol_home_str.split(";") if x.isdigit()])
+        if gol_away_str:
+            all_goals_minutes.extend([int(x) for x in gol_away_str.split(";") if x.isdigit()])
+        
+        if all_goals_minutes:
+            first_goal_minute = min(all_goals_minutes)
+            
+            # Filtra per timeband del primo gol
+            if first_goal_interval[0] <= first_goal_minute <= first_goal_interval[1]:
+                score_at_first_goal = get_score_at_minute(row, first_goal_minute)
+                
+                # Filtra per risultato al momento del primo gol
+                if first_goal_result_at_minute_str == "Tutti" or score_at_first_goal == first_goal_result_at_minute_str:
+                    # Il primo gol deve essere avvenuto prima o al minutaggio attuale
+                    if first_goal_minute <= current_minute_filter_val:
+                        df_filtered_step1 = pd.concat([df_filtered_step1, pd.DataFrame([row])], ignore_index=True)
+
+    if df_filtered_step1.empty:
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    # --- Filtro per il Secondo Gol (se specificato) ---
+    final_filtered_df = df_filtered_step1.copy()
+    if second_goal_result_at_minute_str and second_goal_result_at_minute_str != "Tutti":
+        df_filtered_step2 = pd.DataFrame()
+        second_goal_interval = None
+        if second_goal_timeband_label and second_goal_timeband_label != "Qualsiasi":
+             # Qui useremo gli stessi timeband del primo gol per semplicità, ma potresti definire altri
+            second_goal_timebands = primo_gol_timebands 
+            for i, label in enumerate(primo_gol_label_timebands):
+                if label == second_goal_timeband_label:
+                    second_goal_interval = second_goal_timebands[i]
+                    break
+        
+        for _, row in final_filtered_df.iterrows():
+            gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+            gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
+
+            all_goals_minutes = []
+            if gol_home_str:
+                all_goals_minutes.extend([ (int(x), 'home') for x in gol_home_str.split(";") if x.isdigit() ])
+            if gol_away_str:
+                all_goals_minutes.extend([ (int(x), 'away') for x in gol_away_str.split(";") if x.isdigit() ])
+            
+            all_goals_minutes.sort() # Ordina tutti i gol per minuto
+
+            if len(all_goals_minutes) >= 2:
+                first_goal_min = all_goals_minutes[0][0] # Già filtrato per questo
+                second_goal_min = all_goals_minutes[1][0]
+
+                # Il secondo gol deve essere avvenuto dopo il primo gol e prima o al minutaggio attuale
+                if second_goal_min > first_goal_min and second_goal_min <= current_minute_filter_val:
+                    score_at_second_goal = get_score_at_minute(row, second_goal_min)
+                    
+                    # Filtra per risultato al momento del secondo gol
+                    if second_goal_result_at_minute_str == "Tutti" or score_at_second_goal == second_goal_result_at_minute_str:
+                        # Filtra per timeband del secondo gol (se specificato)
+                        if second_goal_interval is None or (second_goal_interval[0] <= second_goal_min <= second_goal_interval[1]):
+                            df_filtered_step2 = pd.concat([df_filtered_step2, pd.DataFrame([row])], ignore_index=True)
+        final_filtered_df = df_filtered_step2
+    
+    if final_filtered_df.empty:
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    # --- Calcola le statistiche richieste sul final_filtered_df ---
+    # Over Goals HT (basato sui gol effettivi a HT)
+    over_ht_data = []
+    df_temp_ht = final_filtered_df.copy()
+    df_temp_ht["tot_goals_ht"] = df_temp_ht["Gol_Home_HT"] + df_temp_ht["Gol_Away_HT"]
+    for t in [0.5, 1.5, 2.5]: # Puoi aggiungere altri valori se necessario
+        count = (df_temp_ht["tot_goals_ht"] > t).sum()
+        perc = round((count / len(df_temp_ht)) * 100, 2) if len(df_temp_ht) > 0 else 0
+        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        over_ht_data.append([f"Over {t} HT", count, perc, odd_min])
+    df_over_ht = pd.DataFrame(over_ht_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+
+    # Over Goals FT (basato sui gol effettivi a FT)
+    over_ft_data = []
+    df_temp_ft = final_filtered_df.copy()
+    df_temp_ft["tot_goals_ft"] = df_temp_ft["Gol_Home_FT"] + df_temp_ft["Gol_Away_FT"]
+    for t in [0.5, 1.5, 2.5, 3.5, 4.5]: # Puoi aggiungere altri valori se necessario
+        count = (df_temp_ft["tot_goals_ft"] > t).sum()
+        perc = round((count / len(df_temp_ft)) * 100, 2) if len(df_temp_ft) > 0 else 0
+        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
+    df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+
+    # WinRate HT e FT
+    df_winrate_ht = calcola_winrate(final_filtered_df, "risultato_ht")
+    df_winrate_ft = calcola_winrate(final_filtered_df, "risultato_ft")
+
+    # Risultati Esatti HT e FT
+    # Per evitare la stampa diretta, le funzioni mostra_risultati_esatti devono restituire un DF
+    # Adattiamo queste funzioni per restituire un DataFrame invece di stamparlo direttamente
+    def get_exact_scores_df(df_input, col_risultato, titolo):
+        risultati_interessanti = [
+            "0-0", "0-1", "0-2", "0-3",
+            "1-0", "1-1", "1-2", "1-3",
+            "2-0", "2-1", "2-2", "2-3",
+            "3-0", "3-1", "3-2", "3-3"
+        ]
+        df_valid = df_input[df_input[col_risultato].notna() & (df_input[col_risultato].str.contains("-"))].copy()
+
+        if df_valid.empty:
+            return pd.DataFrame(columns=[titolo, "Conteggio", "Percentuale %", "Odd Minima"])
+
+        def classifica_risultato(ris):
+            try:
+                home, away = map(int, ris.split("-"))
+            except:
+                return "Altro"
+            if ris in risultati_interessanti:
+                return ris
+            if home > away:
+                return "Altro risultato casa vince"
+            elif home < away:
+                return "Altro risultato ospite vince"
+            else:
+                return "Altro pareggio"
+
+        df_valid["classificato"] = df_valid[col_risultato].apply(classifica_risultato)
+        distribuzione = df_valid["classificato"].value_counts().reset_index()
+        distribuzione.columns = [titolo, "Conteggio"]
+        distribuzione["Percentuale %"] = (distribuzione["Conteggio"] / len(df_valid) * 100).round(2)
+        distribuzione["Odd Minima"] = distribuzione["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+        return distribuzione
+
+    df_exact_scores_ht = get_exact_scores_df(final_filtered_df, "risultato_ht", "Risultato Esatto HT")
+    df_exact_scores_ft = get_exact_scores_df(final_filtered_df, "risultato_ft", "Risultato Esatto FT")
+
+    # BTTS FT (dopo il minutaggio attuale)
+    df_btts_ft_after_current_minute = calcola_btts_dinamico(final_filtered_df, current_minute_filter_val)
+
+    return df_over_ht, df_over_ft, df_winrate_ht, df_winrate_ft, df_exact_scores_ht, df_exact_scores_ft, df_btts_ft_after_current_minute
+
+
 # SEZIONE 1: Analisi Timeband per Campionato
 st.subheader("1. Analisi Timeband per Campionato")
 if selected_league != "Tutte":
@@ -1985,7 +2166,8 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 st.dataframe(styled_df)
             with col2:
                 st.write("### FT")
-                df_btts_ft_dynamic = calcola_btts_dinamico(df_target, start_min, risultati_correnti)
+                # Corrected call: removed 'risultati_correnti' as it's not needed here
+                df_btts_ft_dynamic = calcola_btts_dinamico(df_target, current_minute_filter) 
                 styled_df = df_btts_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
 
@@ -2485,14 +2667,18 @@ if not df_base_section7.empty:
 
 
         if st.button("Avvia Analisi Dinamica Avanzata"):
-            df_over_ht, df_over_ft, df_winrate_ht, df_winrate_ft, df_exact_scores_ht, df_exact_scores_ft, df_btts_ft = \
+            df_over_ht, df_over_ft, df_winrate_ht, df_winrate_ft, df_exact_scores_ht, df_exact_scores_ft, df_btts_ft_after_current_minute = \
                 calcola_analisi_dinamica_avanzata(
                     df_temp_filtered_by_odds, # Passa il DF già filtrato per quote
                     selected_first_goal_result,
                     selected_first_goal_timeband,
                     current_minute_filter,
                     selected_second_goal_result if enable_second_goal_filter else None,
-                    selected_second_goal_timeband if enable_second_goal_filter else None
+                    selected_second_goal_timeband if enable_second_goal_filter else None,
+                    float(min_odd_home_s7) if min_odd_home_s7 else None,
+                    float(max_odd_home_s7) if max_odd_home_s7 else None,
+                    float(min_odd_away_s7) if min_odd_away_s7 else None,
+                    float(max_odd_away_s7) if max_odd_away_s7 else None
                 )
 
             if not df_over_ht.empty: # Se sono state trovate partite
@@ -2526,8 +2712,7 @@ if not df_base_section7.empty:
 
                 st.subheader("BTTS FT (dopo minutaggio attuale)")
                 # La funzione calcola_btts_dinamico è già stata adattata per calcolare il BTTS dopo il minuto attuale
-                df_btts_after_current_minute = calcola_btts_dinamico(df_temp_filtered_by_odds, current_minute_filter)
-                styled_df_btts_after_current_minute = df_btts_after_current_minute.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                styled_df_btts_after_current_minute = df_btts_ft_after_current_minute.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df_btts_after_current_minute)
 
             else:
