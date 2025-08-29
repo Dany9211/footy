@@ -1018,15 +1018,19 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
             gol_fatti_away += len(goals_in_interval_away)
             gol_subiti_away += len(goals_in_interval_home) # Gol subiti dall'away = gol fatti dalla casa
         
-        perc = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+        odd_min = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
+        
+        perc_almeno_1_gol = round((partite_con_almeno_1_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+        perc_almeno_2_gol = round((partite_con_almeno_2_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+
         risultati.append([
             label, 
             partite_con_gol, 
-            perc, 
+            perc_con_gol, 
             odd_min, 
-            partite_con_almeno_1_gol, 
-            partite_con_almeno_2_gol,
+            perc_almeno_1_gol, 
+            perc_almeno_2_gol,
             gol_fatti_home, 
             gol_subiti_home, 
             gol_fatti_away, 
@@ -1042,14 +1046,14 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
         "Partite con Gol", 
         "Percentuale %", 
         "Odd Minima",
-        ">= 1 Gol",
-        ">= 2 Gol",
+        ">= 1 Gol %", # Updated column name
+        ">= 2 Gol %", # Updated column name
         "Gol Fatti Casa",
         "Gol Subiti Casa",
         "Gol Fatti Trasferta",
         "Gol Subiti Trasferta"
     ])
-    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 1 Gol %', '>= 2 Gol %']) # Update subset for styling
     st.dataframe(styled_df)
 
 # --- NUOVA FUNZIONE RIUTILIZZABILE PER DISTRIBUZIONE TIMEBAND (5 MIN) ---
@@ -1095,15 +1099,19 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
             gol_fatti_away += len(goals_in_interval_away)
             gol_subiti_away += len(goals_in_interval_home)
             
-        perc = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+        odd_min = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
+
+        perc_almeno_1_gol = round((partite_con_almeno_1_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+        perc_almeno_2_gol = round((partite_con_almeno_2_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+
         risultati.append([
             label, 
             partite_con_gol, 
-            perc, 
+            perc_con_gol, 
             odd_min,
-            partite_con_almeno_1_gol,
-            partite_con_almeno_2_gol,
+            perc_almeno_1_gol,
+            perc_almeno_2_gol,
             gol_fatti_home,
             gol_subiti_home,
             gol_fatti_away,
@@ -1119,14 +1127,14 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
         "Partite con Gol", 
         "Percentuale %", 
         "Odd Minima",
-        ">= 1 Gol",
-        ">= 2 Gol",
+        ">= 1 Gol %", # Updated column name
+        ">= 2 Gol %", # Updated column name
         "Gol Fatti Casa",
         "Gol Subiti Casa",
         "Gol Fatti Trasferta",
         "Gol Subiti Trasferta"
     ])
-    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 1 Gol %', '>= 2 Gol %']) # Update subset for styling
     st.dataframe(styled_df)
 
 # --- FUNZIONE NEXT GOAL ---
