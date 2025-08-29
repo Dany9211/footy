@@ -36,10 +36,10 @@ def load_data(uploaded_file):
             if not df.empty and len(df.columns) > 1:
                 st.success(f"File CSV caricato con successo (delimitatore ';', codifica latin1). Colonne: {df.columns.tolist()}")
                 return df
-            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+            uploaded_file.seek(0) # Resetta per el prossimo tentativo
         except Exception as e:
             st.error(f"Errore di caricamento (';', latin1): {e}. Tentativo successivo...")
-            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+            uploaded_file.seek(0) # Resetta per el prossimo tentativo
 
         # Strategia 3: Delimitatore ',', codifica UTF-8, usa il motore Python, salta righe malformate
         try:
@@ -47,10 +47,10 @@ def load_data(uploaded_file):
             if not df.empty and len(df.columns) > 1:
                 st.success(f"File CSV caricato con successo (delimitatore ',', codifica utf-8, motore python). Colonne: {df.columns.tolist()}")
                 return df
-            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+            uploaded_file.seek(0) # Resetta per el prossimo tentativo
         except Exception as e:
             st.error(f"Errore di caricamento (',', utf-8, python engine): {e}. Tentativo successivo...")
-            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+            uploaded_file.seek(0) # Resetta per el prossimo tentativo
 
         # Strategia 4: Rilevamento automatico del delimitatore, motore Python, salta righe malformate
         try:
@@ -599,7 +599,7 @@ def calcola_stats_sh(df_to_analyze):
     no_btts_sh_count = len(df_sh) - btts_sh_count
     btts_sh_data = [
         ["BTTS SI SH", btts_sh_count, round((btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0],
-        ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_matches > 0 else 0]
+        ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0]
     ]
     df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %"])
     df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
@@ -1745,7 +1745,7 @@ if not filtered_df.empty:
         no_btts_sh_count = len(df_sh) - btts_sh_count
         btts_sh_data = [
             ["BTTS SI SH", btts_sh_count, round((btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0],
-            ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_matches > 0 else 0]
+            ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0]
         ]
         df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %"])
         df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
