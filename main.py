@@ -858,8 +858,7 @@ def mostra_risultati_esatti(df, col_risultato, titolo):
     df_valid = df[df[col_risultato].notna() & (df[col_risultato].str.contains("-"))].copy()
 
     if df_valid.empty:
-        st.subheader(f"Risultati Esatti {titolo} (0 partite)")
-        st.info("Nessun dato valido per i risultati esatti nel dataset filtrato.")
+        # Non stampiamo qui il subheader o l'info, lo farà la sezione chiamante
         return pd.DataFrame(columns=[titolo, "Conteggio", "Percentuale %", "Odd Minima"])
 
     def classifica_risultato(ris):
@@ -883,10 +882,7 @@ def mostra_risultati_esatti(df, col_risultato, titolo):
     distribuzione["Odd Minima"] = distribuzione["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
     distribuzione["Odd Minima"] = distribuzione["Odd Minima"].fillna('-').astype(str)
 
-    st.subheader(f"Risultati Esatti {titolo} ({len(df_valid)} partite)")
-    styled_df = distribuzione.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-    st.dataframe(styled_df)
-    return distribuzione
+    return distribuzione # Solo restituisce il DataFrame
 
 def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0):
     if df_to_analyze.empty:
@@ -1726,9 +1722,12 @@ if not filtered_df.empty:
     }))
 
     with st.expander("Mostra Statistiche HT"):
-        df_exact_ht_prematch = mostra_risultati_esatti(filtered_df, "risultato_ht", f"HT ({len(filtered_df)})")
+        st.subheader(f"Risultati Esatti HT ({len(filtered_df)})")
+        df_exact_ht_prematch = mostra_risultati_esatti(filtered_df, "risultato_ht", "Risultato Esatto HT")
         if not df_exact_ht_prematch.empty:
             st.dataframe(df_exact_ht_prematch.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+        else:
+            st.info("Nessun risultato esatto HT disponibile per i filtri selezionati.")
 
         st.subheader(f"WinRate HT ({len(filtered_df)})")
         df_winrate_ht = calcola_winrate(filtered_df, "risultato_ht")
@@ -1801,7 +1800,7 @@ if not filtered_df.empty:
             stats_sh_winrate.append((esito, count, perc, odd_min))
         df_winrate_sh = pd.DataFrame(stats_sh_winrate, columns=["Esito", "Conteggio", "WinRate %", "Odd Minima"])
         df_winrate_sh["Odd Minima"] = df_winrate_sh["Odd Minima"].fillna('-').astype(str)
-        styled_df = df_winrate_sh.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+        styled_df = df_winrate_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df)
 
         st.subheader(f"Over Goals SH ({len(filtered_df)})")
@@ -1824,8 +1823,7 @@ if not filtered_df.empty:
             ["BTTS SI SH", btts_sh_count, round((btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0],
             ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0]
         ]
-        df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %"])
-        df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
+        df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
         df_btts_sh["Odd Minima"] = df_btts_sh["Odd Minima"].fillna('-').astype(str)
         styled_df = df_btts_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df)
@@ -1872,9 +1870,12 @@ if not filtered_df.empty:
             st.dataframe(calcola_goals_per_team_period(filtered_df, 'away', 'subiti', 'sh').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
 
     with st.expander("Mostra Statistiche FT (Finale)"):
-        df_exact_ft_prematch = mostra_risultati_esatti(filtered_df, "risultato_ft", f"FT ({len(filtered_df)})")
+        st.subheader(f"Risultati Esatti FT ({len(filtered_df)})")
+        df_exact_ft_prematch = mostra_risultati_esatti(filtered_df, "risultato_ft", "Risultato Esatto FT")
         if not df_exact_ft_prematch.empty:
             st.dataframe(df_exact_ft_prematch.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+        else:
+            st.info("Nessun risultato esatto FT disponibile per i filtri selezionati.")
 
         st.subheader(f"WinRate FT ({len(filtered_df)})")
         df_winrate_ft = calcola_winrate(filtered_df, "risultato_ft")
@@ -1999,13 +2000,19 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 "Media Gol": [f"{avg_ht_goals_dynamic:.2f}", f"{avg_ft_goals_dynamic:.2f}", f"{avg_sh_goals_dynamic:.2f}"]
             }))
             
-            df_exact_ht_dynamic = mostra_risultati_esatti(df_target, "risultato_ht", f"HT ({len(df_target)})")
+            st.subheader(f"Risultati Esatti HT ({len(df_target)})")
+            df_exact_ht_dynamic = mostra_risultati_esatti(df_target, "risultato_ht", "Risultato Esatto HT")
             if not df_exact_ht_dynamic.empty:
                 st.dataframe(df_exact_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun risultato esatto HT dinamico disponibile.")
 
-            df_exact_ft_dynamic = mostra_risultati_esatti(df_target, "risultato_ft", f"FT ({len(df_target)})")
+            st.subheader(f"Risultati Esatti FT ({len(df_target)})")
+            df_exact_ft_dynamic = mostra_risultati_esatti(df_target, "risultato_ft", "Risultato Esatto FT")
             if not df_exact_ft_dynamic.empty:
                 st.dataframe(df_exact_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun risultato esatto FT dinamico disponibile.")
 
 
             st.subheader(f"WinRate (Dinamica) ({len(df_target)})")
@@ -2185,13 +2192,19 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
                 "Media Gol": [f"{avg_ht_goals:.2f}", f"{avg_ft_goals:.2f}", f"{avg_sh_goals:.2f}"]
             }))
             
-            df_exact_ht_h2h = mostra_risultati_esatti(h2h_df, "risultato_ht", f"HT H2H ({len(h2h_df)})")
+            st.subheader(f"Risultati Esatti HT H2H ({len(h2h_df)})")
+            df_exact_ht_h2h = mostra_risultati_esatti(h2h_df, "risultato_ht", "Risultato Esatto HT H2H")
             if not df_exact_ht_h2h.empty:
                 st.dataframe(df_exact_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun risultato esatto HT H2H disponibile.")
 
-            df_exact_ft_h2h = mostra_risultati_esatti(h2h_df, "risultato_ft", f"FT H2H ({len(h2h_df)})")
+            st.subheader(f"Risultati Esatti FT H2H ({len(h2h_df)})")
+            df_exact_ft_h2h = mostra_risultati_esatti(h2h_df, "risultato_ft", "Risultato Esatto FT H2H")
             if not df_exact_ft_h2h.empty:
                 st.dataframe(df_exact_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+            else:
+                st.info("Nessun risultato esatto FT H2H disponibile.")
 
             col1, col2 = st.columns(2)
             with col1:
