@@ -36,10 +36,10 @@ def load_data(uploaded_file):
             if not df.empty and len(df.columns) > 1:
                 st.success(f"File CSV caricato con successo (delimitatore ';', codifica latin1). Colonne: {df.columns.tolist()}")
                 return df
-            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+            uploaded_file.seek(0) # Resetta per el prossimo tentativo
         except Exception as e:
             st.error(f"Errore di caricamento (';', latin1): {e}. Tentativo successivo...")
-            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+            uploaded_file.seek(0) # Resetta per el prossimo tentativo
 
         # Strategia 3: Delimitatore ',', codifica UTF-8, usa il motore Python, salta righe malformate
         try:
@@ -47,10 +47,10 @@ def load_data(uploaded_file):
             if not df.empty and len(df.columns) > 1:
                 st.success(f"File CSV caricato con successo (delimitatore ',', codifica utf-8, motore python). Colonne: {df.columns.tolist()}")
                 return df
-            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+            uploaded_file.seek(0) # Resetta per el prossimo tentativo
         except Exception as e:
             st.error(f"Errore di caricamento (',', utf-8, python engine): {e}. Tentativo successivo...")
-            uploaded_file.seek(0) # Resetta per il prossimo tentativo
+            uploaded_file.seek(0) # Resetta per el prossimo tentativo
 
         # Strategia 4: Rilevamento automatico del delimitatore, motore Python, salta righe malformate
         try:
@@ -768,7 +768,7 @@ def calcola_to_score_sh(df_to_analyze):
         ["Away Team to Score SH", away_to_score_count, round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0]
     ]
     
-    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %"])
+    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %"])
     df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
     
     return df_stats
@@ -1149,9 +1149,9 @@ def mostra_distribuzione_timeband_custom(df_to_analyze, min_start_display=0):
         st.warning("Il DataFrame per l'analisi a timing personalizzato è vuoto.")
         return
 
-    # Nuovi intervalli personalizzati
-    custom_intervalli = [(1, 20), (21, 45), (46, 75), (70, 90), (75, 90), (80, 90), (85, 95)]
-    custom_label_intervalli = ["1-20", "21-45", "46-75", "70-90", "75-90", "80-90", "85-95"]
+    # Nuovi intervalli personalizzati, incluso 46-70
+    custom_intervalli = [(1, 20), (21, 45), (46, 70), (70, 90), (75, 90), (80, 90), (85, 95)]
+    custom_label_intervalli = ["1-20", "21-45", "46-70", "70-90", "75-90", "80-90", "85-95"]
 
     risultati = []
     total_matches = len(df_to_analyze)
