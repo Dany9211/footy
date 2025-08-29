@@ -1051,11 +1051,12 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
         "Gol Subiti Trasferta"
     ])
     # Converti le colonne "Odd Minima" a numerico, convertendo gli errori in NaN
-    df_result["Odd Minima"] = pd.to_numeric(df_result["Odd Minima"], errors='coerce')
-    df_result["Odd Minima >= 2 Gol"] = pd.to_numeric(df_result["Odd Minima >= 2 Gol"], errors='coerce')
+    # e poi converti a stringa per evitare che vengano colorate
+    df_result["Odd Minima"] = pd.to_numeric(df_result["Odd Minima"], errors='coerce').fillna('-').astype(str)
+    df_result["Odd Minima >= 2 Gol"] = pd.to_numeric(df_result["Odd Minima >= 2 Gol"], errors='coerce').fillna('-').astype(str)
 
-    # Aggiornato subset per lo styling
-    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %', 'Odd Minima', 'Odd Minima >= 2 Gol']) 
+    # Aggiornato subset per lo styling, escludendo le colonne "Odd Minima"
+    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %']) 
     st.dataframe(styled_df)
 
 # --- NUOVA FUNZIONE RIUTILIZZABILE PER DISTRIBUZIONE TIMEBAND (5 MIN) ---
@@ -1134,12 +1135,103 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
         "Gol Subiti Trasferta"
     ])
     # Converti le colonne "Odd Minima" a numerico, convertendo gli errori in NaN
-    df_result["Odd Minima"] = pd.to_numeric(df_result["Odd Minima"], errors='coerce')
-    df_result["Odd Minima >= 2 Gol"] = pd.to_numeric(df_result["Odd Minima >= 2 Gol"], errors='coerce')
+    # e poi converti a stringa per evitare che vengano colorate
+    df_result["Odd Minima"] = pd.to_numeric(df_result["Odd Minima"], errors='coerce').fillna('-').astype(str)
+    df_result["Odd Minima >= 2 Gol"] = pd.to_numeric(df_result["Odd Minima >= 2 Gol"], errors='coerce').fillna('-').astype(str)
 
-    # Aggiornato subset per lo styling
-    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %', 'Odd Minima', 'Odd Minima >= 2 Gol']) 
+    # Aggiornato subset per lo styling, escludendo le colonne "Odd Minima"
+    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %']) 
     st.dataframe(styled_df)
+
+# --- NUOVA FUNZIONE RIUTILIZZABILE PER DISTRIBUZIONE TIMEBAND (CUSTOM) ---
+def mostra_distribuzione_timeband_custom(df_to_analyze, min_start_display=0):
+    if df_to_analyze.empty:
+        st.warning("Il DataFrame per l'analisi a timing personalizzato è vuoto.")
+        return
+
+    # Nuovi intervalli personalizzati
+    custom_intervalli = [(1, 20), (21, 45), (46, 75), (70, 90), (75, 90), (80, 90), (85, 95)]
+    custom_label_intervalli = ["1-20", "21-45", "46-75", "70-90", "75-90", "80-90", "85-95"]
+
+    risultati = []
+    total_matches = len(df_to_analyze)
+    
+    for (start_interval, end_interval), label in zip(custom_intervalli, custom_label_intervalli):
+        # Salta gli intervalli che terminano prima del minuto di inizio visualizzazione
+        if end_interval < min_start_display:
+            continue
+
+        partite_con_gol = 0
+        partite_con_almeno_2_gol = 0
+        gol_fatti_home = 0
+        gol_subiti_home = 0
+        gol_fatti_away = 0
+        gol_subiti_away = 0
+
+        for _, row in df_to_analyze.iterrows():
+            gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
+            gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
+            
+            # Gol effettivi in questo intervallo, considerando min_start_display
+            goals_in_interval_home = [g for g in gol_home if max(start_interval, min_start_display) <= g <= end_interval]
+            goals_in_interval_away = [g for g in gol_away if max(start_interval, min_start_display) <= g <= end_interval]
+            
+            total_goals_in_interval = len(goals_in_interval_home) + len(goals_in_interval_away)
+
+            if total_goals_in_interval > 0:
+                partite_con_gol += 1
+            if total_goals_in_interval >= 2:
+                partite_con_almeno_2_gol += 1
+
+            gol_fatti_home += len(goals_in_interval_home)
+            gol_subiti_home += len(goals_in_interval_away)
+            gol_fatti_away += len(goals_in_interval_away)
+            gol_subiti_away += len(goals_in_interval_home)
+            
+        perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+        odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
+
+        perc_almeno_2_gol = round((partite_con_almeno_2_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+        odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-"
+
+        risultati.append([
+            label, 
+            partite_con_gol, 
+            perc_con_gol, 
+            odd_min_con_gol,
+            perc_almeno_2_gol,
+            odd_min_almeno_2_gol,
+            gol_fatti_home,
+            gol_subiti_home,
+            gol_fatti_away,
+            gol_subiti_away
+        ])
+    
+    if not risultati:
+        st.info(f"Nessun intervallo di tempo rilevante dopo il minuto {min_start_display} per l'analisi a timing personalizzato.")
+        return
+
+    df_result = pd.DataFrame(risultati, columns=[
+        "Timeframe", 
+        "Partite con Gol", 
+        "Percentuale %", 
+        "Odd Minima",
+        ">= 2 Gol %", 
+        "Odd Minima >= 2 Gol",
+        "Gol Fatti Casa",
+        "Gol Subiti Casa",
+        "Gol Fatti Trasferta",
+        "Gol Subiti Trasferta"
+    ])
+    # Converti le colonne "Odd Minima" a numerico, convertendo gli errori in NaN
+    # e poi converti a stringa per evitare che vengano colorate
+    df_result["Odd Minima"] = pd.to_numeric(df_result["Odd Minima"], errors='coerce').fillna('-').astype(str)
+    df_result["Odd Minima >= 2 Gol"] = pd.to_numeric(df_result["Odd Minima >= 2 Gol"], errors='coerce').fillna('-').astype(str)
+
+    # Aggiornato subset per lo styling, escludendo le colonne "Odd Minima"
+    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %']) 
+    st.dataframe(styled_df)
+
 
 # --- FUNZIONE NEXT GOAL ---
 def calcola_next_goal(df_to_analyze, start_min, end_min):
@@ -1460,13 +1552,16 @@ if selected_league != "Tutte":
     df_league_only = df[df["League"] == selected_league]
     st.write(f"Analisi basata su **{len(df_league_only)}** partite del campionato **{selected_league}**.")
     st.write("---")
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3) # Aggiunto col3 per la nuova finestra
     with col1:
         st.write("**Distribuzione Gol per Timeframe (15min)**")
         mostra_distribuzione_timeband(df_league_only) # Chiamata senza min_start_display
     with col2:
         st.write("**Distribuzione Gol per Timeframe (5min)**")
         mostra_distribuzione_timeband_5min(df_league_only) # Chiamata senza min_start_display
+    with col3: # Nuova colonna per la finestra custom
+        st.write("**Distribuzione Gol per Timeframe (Personalizzata)**")
+        mostra_distribuzione_timeband_custom(df_league_only)
 else:
     st.write("Seleziona un campionato per visualizzare questa analisi.")
 
@@ -1475,13 +1570,16 @@ st.subheader("2. Analisi Timeband per Campionato e Quote")
 st.write(f"Analisi basata su **{len(filtered_df)}** partite filtrate da tutti i parametri della sidebar.")
 if not filtered_df.empty:
     st.write("---")
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3) # Aggiunto col3 per la nuova finestra
     with col1:
         st.write("**Distribuzione Gol per Timeframe (15min)**")
         mostra_distribuzione_timeband(filtered_df) # Chiamata senza min_start_display
     with col2:
         st.write("**Distribuzione Gol per Timeframe (5min)**")
         mostra_distribuzione_timeband_5min(filtered_df) # Chiamata senza min_start_display
+    with col3: # Nuova colonna per la finestra custom
+        st.write("**Distribuzione Gol per Timeframe (Personalizzata)**")
+        mostra_distribuzione_timeband_custom(filtered_df)
 else:
     st.warning("Nessuna partita corrisponde ai filtri selezionati.")
 
@@ -1931,13 +2029,16 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             
             # Qui viene mostrata la timeband basata sull'analisi dinamica
             st.subheader("Distribuzione Gol per Timeframe (dinamica)")
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3) # Aggiunto col3 per la nuova finestra
             with col1:
                 st.write("**15min**")
                 mostra_distribuzione_timeband(df_target, min_start_display=start_min) # Passa start_min
             with col2:
                 st.write("**5min**")
                 mostra_distribuzione_timeband_5min(df_target, min_start_display=start_min) # Passa start_min
+            with col3: # Nuova colonna per la finestra custom
+                st.write("**Personalizzata**")
+                mostra_distribuzione_timeband_custom(df_target, min_start_display=start_min)
 
     else:
         st.warning("Il dataset filtrato è vuoto o mancano le colonne necessarie per l'analisi.")
