@@ -869,7 +869,6 @@ def mostra_risultati_esatti(df, col_risultato, titolo):
             return ris
         if home > away:
             return "Altro risultato casa vince"
-            # In Colab, stampiamo il DataFrame direttamente
         elif home < away:
             return "Altro risultato ospite vince"
         else:
@@ -2233,4 +2232,4 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 mostra_distribuzione_timeband_custom(df_target, min_start_display=start_min)
 
     else:
-        st.warning("Il dataset filtrato è vuoto o mancano le colonne necessarie per l'analisi.")
+        st.warning("Il dataset filtrato è vuoto o mancano le colonne necessarie per l'analisi
