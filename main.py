@@ -986,7 +986,7 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
             continue
 
         partite_con_gol = 0
-        partite_con_almeno_1_gol = 0
+        # partite_con_almeno_1_gol = 0 # Rimosso
         partite_con_almeno_2_gol = 0
         gol_fatti_home = 0
         gol_subiti_home = 0
@@ -1008,8 +1008,8 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
 
             if total_goals_in_interval > 0:
                 partite_con_gol += 1
-            if total_goals_in_interval >= 1:
-                partite_con_almeno_1_gol += 1
+            # if total_goals_in_interval >= 1: # Rimosso
+            #     partite_con_almeno_1_gol += 1
             if total_goals_in_interval >= 2:
                 partite_con_almeno_2_gol += 1
 
@@ -1019,18 +1019,20 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
             gol_subiti_away += len(goals_in_interval_home) # Gol subiti dall'away = gol fatti dalla casa
         
         perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
+        odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
         
-        perc_almeno_1_gol = round((partite_con_almeno_1_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+        # perc_almeno_1_gol = round((partite_con_almeno_1_gol / total_matches) * 100, 2) if total_matches > 0 else 0 # Rimosso
         perc_almeno_2_gol = round((partite_con_almeno_2_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+        odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-" # Aggiunto
 
         risultati.append([
             label, 
             partite_con_gol, 
             perc_con_gol, 
-            odd_min, 
-            perc_almeno_1_gol, 
+            odd_min_con_gol, 
+            # perc_almeno_1_gol, # Rimosso
             perc_almeno_2_gol,
+            odd_min_almeno_2_gol, # Aggiunto
             gol_fatti_home, 
             gol_subiti_home, 
             gol_fatti_away, 
@@ -1046,14 +1048,16 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
         "Partite con Gol", 
         "Percentuale %", 
         "Odd Minima",
-        ">= 1 Gol %", # Updated column name
-        ">= 2 Gol %", # Updated column name
+        # ">= 1 Gol %", # Rimosso
+        ">= 2 Gol %", 
+        "Odd Minima >= 2 Gol", # Aggiunto
         "Gol Fatti Casa",
         "Gol Subiti Casa",
         "Gol Fatti Trasferta",
         "Gol Subiti Trasferta"
     ])
-    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 1 Gol %', '>= 2 Gol %']) # Update subset for styling
+    # Aggiornato subset per lo styling
+    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %', 'Odd Minima >= 2 Gol']) 
     st.dataframe(styled_df)
 
 # --- NUOVA FUNZIONE RIUTILIZZABILE PER DISTRIBUZIONE TIMEBAND (5 MIN) ---
@@ -1070,7 +1074,7 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
             continue
 
         partite_con_gol = 0
-        partite_con_almeno_1_gol = 0
+        # partite_con_almeno_1_gol = 0 # Rimosso
         partite_con_almeno_2_gol = 0
         gol_fatti_home = 0
         gol_subiti_home = 0
@@ -1089,8 +1093,8 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
 
             if total_goals_in_interval > 0:
                 partite_con_gol += 1
-            if total_goals_in_interval >= 1:
-                partite_con_almeno_1_gol += 1
+            # if total_goals_in_interval >= 1: # Rimosso
+            #     partite_con_almeno_1_gol += 1
             if total_goals_in_interval >= 2:
                 partite_con_almeno_2_gol += 1
 
@@ -1100,18 +1104,20 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
             gol_subiti_away += len(goals_in_interval_home)
             
         perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
+        odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
 
-        perc_almeno_1_gol = round((partite_con_almeno_1_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+        # perc_almeno_1_gol = round((partite_con_almeno_1_gol / total_matches) * 100, 2) if total_matches > 0 else 0 # Rimosso
         perc_almeno_2_gol = round((partite_con_almeno_2_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+        odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-" # Aggiunto
 
         risultati.append([
             label, 
             partite_con_gol, 
             perc_con_gol, 
-            odd_min,
-            perc_almeno_1_gol,
+            odd_min_con_gol,
+            # perc_almeno_1_gol, # Rimosso
             perc_almeno_2_gol,
+            odd_min_almeno_2_gol, # Aggiunto
             gol_fatti_home,
             gol_subiti_home,
             gol_fatti_away,
@@ -1127,14 +1133,16 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
         "Partite con Gol", 
         "Percentuale %", 
         "Odd Minima",
-        ">= 1 Gol %", # Updated column name
-        ">= 2 Gol %", # Updated column name
+        # ">= 1 Gol %", # Rimosso
+        ">= 2 Gol %", 
+        "Odd Minima >= 2 Gol", # Aggiunto
         "Gol Fatti Casa",
         "Gol Subiti Casa",
         "Gol Fatti Trasferta",
         "Gol Subiti Trasferta"
     ])
-    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 1 Gol %', '>= 2 Gol %']) # Update subset for styling
+    # Aggiornato subset per lo styling
+    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %', 'Odd Minima >= 2 Gol']) 
     st.dataframe(styled_df)
 
 # --- FUNZIONE NEXT GOAL ---
@@ -1952,7 +1960,7 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
         st.warning("Seleziona due squadre diverse per l'analisi H2H.")
     else:
         # Filtra il DataFrame per trovare tutti i match tra le due squadre selezionate
-        # NOTA: I filtri per le quote della sidebar non vengono applicati qui per avere il dataset H2H completo
+        # NOTA: I filtri per le quote della sidebar non vengono applicati qui per avere il dataset H2h completo
         h2h_df = df[((df['Home_Team'] == h2h_home_team) & (df['Away_Team'] == h2h_away_team)) |
                     ((df['Home_Team'] == h2h_away_team) & (df['Away_Team'] == h2h_home_team))]
         
