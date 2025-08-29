@@ -1855,7 +1855,8 @@ if not filtered_df.empty:
             ["BTTS SI SH", btts_sh_count, round((btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0],
             ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0]
         ]
-        df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+        df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %"])
+        df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
         df_btts_sh["Odd Minima"] = df_btts_sh["Odd Minima"].fillna('-').astype(str)
         styled_df = df_btts_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df)
@@ -2232,4 +2233,4 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 mostra_distribuzione_timeband_custom(df_target, min_start_display=start_min)
 
     else:
-        st.warning("Il dataset filtrato è vuoto o mancano le colonne necessarie per l'analisi
+        st.warning("Il dataset filtrato è vuoto o mancano le colonne necessarie per l'analisi.")
