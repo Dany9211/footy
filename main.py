@@ -1180,8 +1180,8 @@ def mostra_distribuzione_timeband_custom(df_to_analyze, min_start_display=0):
         return
 
     # Nuovi intervalli personalizzati, incluso 46-75
-    custom_intervalli = [(1, 20), (21, 45), (46, 75), (70, 90), (75, 90), (80, 90), (85, 95)]
-    custom_label_intervalli = ["1-20", "21-45", "46-75", "70-90", "75-90", "80-90", "85-95"]
+    custom_intervalli = [(1, 20), (21, 45), (46, 70), (70, 90), (75, 90), (80, 90), (85, 95)]
+    custom_label_intervalli = ["1-20", "21-45", "46-70", "70-90", "75-90", "80-90", "85-95"]
 
     risultati = []
     total_matches = len(df_to_analyze)
@@ -1594,7 +1594,7 @@ def calcola_multi_gol(df_to_analyze, col_gol, titolo):
 # --- NUOVA FUNZIONE PER ANALISI PRIMO GOL IN TIMEBAND ---
 def calcola_analisi_primo_gol_timeband(df_to_analyze, selected_result_filter, selected_timeband_filter):
     if df_to_analyze.empty:
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     # Filtra per il risultato selezionabile
     if selected_result_filter != "Tutti":
@@ -1617,7 +1617,7 @@ def calcola_analisi_primo_gol_timeband(df_to_analyze, selected_result_filter, se
 
     if selected_interval is None:
         st.warning(f"Timeband '{selected_timeband_filter}' non valido. Impossibile filtrare per primo gol.")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     final_filtered_df = pd.DataFrame()
     for _, row in df_filtered_by_result.iterrows():
@@ -1637,7 +1637,7 @@ def calcola_analisi_primo_gol_timeband(df_to_analyze, selected_result_filter, se
 
     if final_filtered_df.empty:
         st.info(f"Nessuna partita trovata con risultato '{selected_result_filter}' e primo gol nel timeframe '{selected_timeband_filter}'.")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     # Calcola le statistiche richieste sul final_filtered_df
     # Over Goals HT
@@ -2436,3 +2436,45 @@ with st.expander("Configura e avvia il Backtest"):
                 st.metric("Odd Minima per profitto", f"{odd_minima:.2f}")
             elif numero_scommesse == 0:
                 st.info("Nessuna scommessa idonea trovata con i filtri e il mercato selezionati.")
+
+# --- SEZIONE 7: Analisi Dinamica per Primo Gol in Timeband ---
+st.subheader("7. Analisi Dinamica per Primo Gol in Timeband")
+st.write("Seleziona un risultato e un timeband del primo gol per analizzare le partite.")
+
+if not filtered_df.empty:
+    with st.expander("Configura Analisi Primo Gol in Timeband"):
+        # Recupera tutti i risultati FT unici per il filtro
+        all_ft_results = ["Tutti"] + sorted(filtered_df["risultato_ft"].dropna().unique())
+        selected_result_filter = st.selectbox("Seleziona Risultato FT", all_ft_results, key="first_goal_result_filter")
+
+        # Definisci i timeband per il primo gol
+        primo_gol_label_timebands = ["1-10", "11-20", "21-30", "31-40", "41-45", "46-55", "56-65", "66-75", "76-85", "86-90"]
+        selected_timeband_filter = st.selectbox("Seleziona Timeband del Primo Gol", primo_gol_label_timebands, key="first_goal_timeband_filter")
+
+        if st.button("Avvia Analisi Primo Gol"):
+            df_over_ht, df_over_ft, df_winrate_ht, df_winrate_ft, final_filtered_df_primo_gol = \
+                calcola_analisi_primo_gol_timeband(filtered_df, selected_result_filter, selected_timeband_filter)
+
+            if not final_filtered_df_primo_gol.empty:
+                st.write(f"**Partite trovate:** {len(final_filtered_df_primo_gol)}")
+                
+                st.markdown("---")
+                st.subheader("Statistiche Over HT (Primo Gol in Timeband)")
+                styled_df_over_ht = df_over_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                st.dataframe(styled_df_over_ht)
+
+                st.subheader("Statistiche Over FT (Primo Gol in Timeband)")
+                styled_df_over_ft = df_over_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+                st.dataframe(styled_df_over_ft)
+
+                st.subheader("WinRate HT (Primo Gol in Timeband)")
+                styled_df_winrate_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+                st.dataframe(styled_df_winrate_ht)
+
+                st.subheader("WinRate FT (Primo Gol in Timeband)")
+                styled_df_winrate_ft = df_winrate_ft.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+                st.dataframe(styled_df_winrate_ft)
+            else:
+                st.info("Nessuna partita trovata con i criteri selezionati per l'analisi del primo gol.")
+else:
+    st.warning("Il dataset filtrato è vuoto o mancano le colonne necessarie per l'analisi del primo gol in timeband.")
