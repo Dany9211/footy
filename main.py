@@ -986,7 +986,6 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
             continue
 
         partite_con_gol = 0
-        # partite_con_almeno_1_gol = 0 # Rimosso
         partite_con_almeno_2_gol = 0
         gol_fatti_home = 0
         gol_subiti_home = 0
@@ -1008,8 +1007,6 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
 
             if total_goals_in_interval > 0:
                 partite_con_gol += 1
-            # if total_goals_in_interval >= 1: # Rimosso
-            #     partite_con_almeno_1_gol += 1
             if total_goals_in_interval >= 2:
                 partite_con_almeno_2_gol += 1
 
@@ -1021,7 +1018,6 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
         perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
         odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
         
-        # perc_almeno_1_gol = round((partite_con_almeno_1_gol / total_matches) * 100, 2) if total_matches > 0 else 0 # Rimosso
         perc_almeno_2_gol = round((partite_con_almeno_2_gol / total_matches) * 100, 2) if total_matches > 0 else 0
         odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-" # Aggiunto
 
@@ -1030,7 +1026,6 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
             partite_con_gol, 
             perc_con_gol, 
             odd_min_con_gol, 
-            # perc_almeno_1_gol, # Rimosso
             perc_almeno_2_gol,
             odd_min_almeno_2_gol, # Aggiunto
             gol_fatti_home, 
@@ -1048,7 +1043,6 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
         "Partite con Gol", 
         "Percentuale %", 
         "Odd Minima",
-        # ">= 1 Gol %", # Rimosso
         ">= 2 Gol %", 
         "Odd Minima >= 2 Gol", # Aggiunto
         "Gol Fatti Casa",
@@ -1056,8 +1050,12 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
         "Gol Fatti Trasferta",
         "Gol Subiti Trasferta"
     ])
+    # Converti le colonne "Odd Minima" a numerico, convertendo gli errori in NaN
+    df_result["Odd Minima"] = pd.to_numeric(df_result["Odd Minima"], errors='coerce')
+    df_result["Odd Minima >= 2 Gol"] = pd.to_numeric(df_result["Odd Minima >= 2 Gol"], errors='coerce')
+
     # Aggiornato subset per lo styling
-    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %', 'Odd Minima >= 2 Gol']) 
+    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %', 'Odd Minima', 'Odd Minima >= 2 Gol']) 
     st.dataframe(styled_df)
 
 # --- NUOVA FUNZIONE RIUTILIZZABILE PER DISTRIBUZIONE TIMEBAND (5 MIN) ---
@@ -1074,7 +1072,6 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
             continue
 
         partite_con_gol = 0
-        # partite_con_almeno_1_gol = 0 # Rimosso
         partite_con_almeno_2_gol = 0
         gol_fatti_home = 0
         gol_subiti_home = 0
@@ -1093,8 +1090,6 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
 
             if total_goals_in_interval > 0:
                 partite_con_gol += 1
-            # if total_goals_in_interval >= 1: # Rimosso
-            #     partite_con_almeno_1_gol += 1
             if total_goals_in_interval >= 2:
                 partite_con_almeno_2_gol += 1
 
@@ -1106,7 +1101,6 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
         perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
         odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
 
-        # perc_almeno_1_gol = round((partite_con_almeno_1_gol / total_matches) * 100, 2) if total_matches > 0 else 0 # Rimosso
         perc_almeno_2_gol = round((partite_con_almeno_2_gol / total_matches) * 100, 2) if total_matches > 0 else 0
         odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-" # Aggiunto
 
@@ -1115,7 +1109,6 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
             partite_con_gol, 
             perc_con_gol, 
             odd_min_con_gol,
-            # perc_almeno_1_gol, # Rimosso
             perc_almeno_2_gol,
             odd_min_almeno_2_gol, # Aggiunto
             gol_fatti_home,
@@ -1133,7 +1126,6 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
         "Partite con Gol", 
         "Percentuale %", 
         "Odd Minima",
-        # ">= 1 Gol %", # Rimosso
         ">= 2 Gol %", 
         "Odd Minima >= 2 Gol", # Aggiunto
         "Gol Fatti Casa",
@@ -1141,8 +1133,12 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
         "Gol Fatti Trasferta",
         "Gol Subiti Trasferta"
     ])
+    # Converti le colonne "Odd Minima" a numerico, convertendo gli errori in NaN
+    df_result["Odd Minima"] = pd.to_numeric(df_result["Odd Minima"], errors='coerce')
+    df_result["Odd Minima >= 2 Gol"] = pd.to_numeric(df_result["Odd Minima >= 2 Gol"], errors='coerce')
+
     # Aggiornato subset per lo styling
-    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %', 'Odd Minima >= 2 Gol']) 
+    styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %', 'Odd Minima', 'Odd Minima >= 2 Gol']) 
     st.dataframe(styled_df)
 
 # --- FUNZIONE NEXT GOAL ---
