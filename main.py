@@ -361,7 +361,7 @@ def calcola_first_to_score_outcome(df_to_analyze):
     
     return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
 
-def calcola_first_to_score_next_goal_outcome(df_to_analyze):
+def calcola_first_to_score_next_gol_outcome(df_to_analyze):
     if df_to_analyze.empty:
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
@@ -411,13 +411,13 @@ def calcola_first_to_score_next_goal_outcome(df_to_analyze):
             else:
                 risultati["Trasferta Segna Prima e Subisce Gol"] += 1
 
-        stats = []
-        for esito, count in risultati.items():
-            perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
-            odd_min = round(100 / perc, 2) if perc > 0 else "-"
-            stats.append((esito, count, perc, odd_min))
-        
-        return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    stats = []
+    for esito, count in risultati.items():
+        perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
+        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        stats.append((esito, count, perc, odd_min))
+    
+    return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
 
 def calcola_double_chance(df_to_analyze, period):
     if df_to_analyze.empty:
@@ -589,7 +589,7 @@ def calcola_first_to_score_outcome_sh(df_to_analyze):
     
     return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
 
-def calcola_first_to_score_next_goal_outcome_sh(df_to_analyze):
+def calcola_first_to_score_next_gol_outcome_sh(df_to_analyze):
     if df_to_analyze.empty:
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
@@ -1957,7 +1957,6 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 st.dataframe(styled_df)
             with col2:
                 st.write("### FT")
-                # Correzione qui: rimosso 'risultati_correnti'
                 df_btts_ft_dynamic = calcola_btts_dinamico(df_target, current_minute_filter) 
                 styled_df = df_btts_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
