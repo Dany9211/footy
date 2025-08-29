@@ -80,13 +80,13 @@ if 'Data' in df.columns:
     df['Data'] = pd.to_datetime(df['Data'], format='%d/%m/%Y %H:%M', errors='coerce')
     df = df.dropna(subset=['Data'])
 else:
-    st.error("Colonna 'Data' non trovata. Assicurati che il nome della colonna sia corretto (sensibile alle maiuscole).")
+    st.error("Colonna 'Data' non trovata. Assicurati che il nome della colonna sia corretto (sensibile alle maioline).")
 
 if 'Anno' in df.columns:
     df['Anno'] = pd.to_numeric(df['Anno'], errors='coerce')
     df = df.dropna(subset=['Anno'])
 else:
-    st.error("Colonna 'Anno' non trovata. Assicurati che il nome della colonna sia corretto (sensibile alle maiuscole).")
+    st.error("Colonna 'Anno' non trovata. Assicurati che il nome della colonna sia corretto (sensibile alle maioline).")
 
 all_numeric_cols_with_comma = [
     "Odd_Home", "Odd_Draw", "Odd__Away", "Odd_Over_0.5", "Odd_over_1.5", 
@@ -1398,11 +1398,11 @@ def calcola_btts_dinamico(df_to_analyze, current_minute_filter_val):
     
     perc_si = round((btts_si_count / total_matches) * 100, 2) if total_matches > 0 else 0
     odd_min_si = round(100 / perc_si, 2) if perc_si > 0 else np.nan
-    data.append(["BTTS SI (dopo minuto attuale)", btts_si_count, perc_si, odd_min_si])
+    data.append(["BTTS SI (risultato finale)", btts_si_count, perc_si, odd_min_si])
 
     perc_no = round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0
     odd_min_no = round(100 / perc_no, 2) if perc_no > 0 else np.nan
-    data.append(["BTTS NO (dopo minuto attuale)", no_btts_count, perc_no, odd_min_no])
+    data.append(["BTTS NO (risultato finale)", no_btts_count, perc_no, odd_min_no])
     
     df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
     df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
@@ -1743,7 +1743,7 @@ if not filtered_df.empty:
 
         st.subheader(f"WinRate HT ({len(filtered_df)})")
         df_winrate_ht = calcola_winrate(filtered_df, "risultato_ht")
-        if not df_winrate_ht.empty: # Aggiunto controllo di vuoto
+        if not df_winrate_ht.empty:
             styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df_ht)
         else:
@@ -1928,7 +1928,7 @@ if not filtered_df.empty:
 
         st.subheader(f"WinRate FT ({len(filtered_df)})")
         df_winrate_ft = calcola_winrate(filtered_df, "risultato_ft")
-        if not df_winrate_ft.empty: # Aggiunto controllo di vuoto
+        if not df_winrate_ft.empty:
             styled_df_ft = df_winrate_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df_ft)
         else:
