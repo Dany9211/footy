@@ -1320,20 +1320,29 @@ def calcola_btts_dinamico(df_to_analyze, current_minute_filter_val):
     btts_si_count = 0
 
     for _, row in df_to_analyze.iterrows():
-        gol_home_after_current_minute = sum(1 for g in [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()] if g > current_minute_filter_val)
-        gol_away_after_current_minute = sum(1 for g in [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()] if g > current_minute_filter_val)
+        # Score at current minute
+        score_home_at_current_minute = sum(1 for g in [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()] if g <= current_minute_filter_val)
+        score_away_at_current_minute = sum(1 for g in [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()] if g <= current_minute_filter_val)
 
-        if (gol_home_after_current_minute > 0 and gol_away_after_current_minute > 0):
+        # Goals scored after current minute
+        goals_home_after = sum(1 for g in [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()] if g > current_minute_filter_val)
+        goals_away_after = sum(1 for g in [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()] if g > current_minute_filter_val)
+
+        # Check if both teams have scored by the end of the match, considering goals before and after current_minute_filter_val
+        final_home_goals = score_home_at_current_minute + goals_home_after
+        final_away_goals = score_away_at_current_minute + goals_away_after
+
+        if final_home_goals > 0 and final_away_goals > 0:
             btts_si_count += 1
 
     no_btts_count = total_matches - btts_si_count
 
     data = [
-        ["BTTS SI (dopo minuto selezionato)", btts_si_count, round((btts_si_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["BTTS NO (dopo minuto selezionato)", no_btts_count, round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0]
+        ["BTTS SI (risultato finale)", btts_si_count, round((btts_si_count / total_matches) * 100, 2) if total_matches > 0 else 0],
+        ["BTTS NO (risultato finale)", no_btts_count, round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0]
     ]
 
-    df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %"])
+    df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
     df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
 
     return df_stats
@@ -1957,7 +1966,8 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 st.dataframe(styled_df)
             with col2:
                 st.write("### FT")
-                df_btts_ft_dynamic = calcola_btts_dinamico(df_target, current_minute_filter) 
+                # Correzione qui: rimosso 'risultati_correnti'
+                df_btts_ft_dynamic = calcola_btts_dinamico(df_target, start_min) 
                 styled_df = df_btts_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
 
