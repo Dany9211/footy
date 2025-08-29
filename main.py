@@ -1356,7 +1356,7 @@ def calcola_btts_ft(df_to_analyze):
     df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
-def calcola_btts_dinamico(df_to_analyze, current_minute_filter_val):
+def calcola_btts_ft_after_current_minute(df_to_analyze, current_minute_filter_val):
     if df_to_analyze.empty:
         return pd.DataFrame(columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
 
@@ -1677,7 +1677,7 @@ def calcola_analisi_dinamica_avanzata(df_base, first_goal_result_at_minute_str, 
     df_exact_scores_ht = get_exact_scores_df(final_filtered_df, "risultato_ht", "Risultato Esatto HT")
     df_exact_scores_ft = get_exact_scores_df(final_filtered_df, "risultato_ft", "Risultato Esatto FT")
 
-    df_btts_ft_after_current_minute = calcola_btts_dinamico(final_filtered_df, current_minute_filter_val)
+    df_btts_ft_after_current_minute = calcola_btts_ft_after_current_minute(final_filtered_df, current_minute_filter_val) # Corrected function call
 
     return df_over_ht, df_over_ft, df_winrate_ht, df_winrate_ft, df_exact_scores_ht, df_exact_scores_ft, df_btts_ft_after_current_minute
 
@@ -1744,7 +1744,7 @@ if not filtered_df.empty:
         st.subheader(f"WinRate HT ({len(filtered_df)})")
         df_winrate_ht = calcola_winrate(filtered_df, "risultato_ht")
         if not df_winrate_ht.empty:
-            styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['WinRate %']) # Corrected subset
+            styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
             st.dataframe(styled_df_ht)
         else:
             st.info("Nessun WinRate HT disponibile per i filtri selezionati.")
@@ -2139,7 +2139,7 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 st.dataframe(styled_df)
             with col2:
                 st.write("### FT")
-                df_btts_ft_dynamic = calcola_btts_dinamico(df_target, start_min) 
+                df_btts_ft_dynamic = calcola_btts_ft_after_current_minute(df_target, start_min) 
                 styled_df = df_btts_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
 
