@@ -356,10 +356,12 @@ def calcola_first_to_score_outcome(df_to_analyze):
     stats = []
     for esito, count in risultati.items():
         perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         stats.append((esito, count, perc, odd_min))
     
-    return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
+    return df_stats
 
 def calcola_first_to_score_next_gol_outcome(df_to_analyze):
     if df_to_analyze.empty:
@@ -414,10 +416,12 @@ def calcola_first_to_score_next_gol_outcome(df_to_analyze):
     stats = []
     for esito, count in risultati.items():
         perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         stats.append((esito, count, perc, odd_min))
     
-    return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
+    return df_stats
 
 def calcola_double_chance(df_to_analyze, period):
     if df_to_analyze.empty:
@@ -458,8 +462,8 @@ def calcola_double_chance(df_to_analyze, period):
     ]
     
     df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
-    
+    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
 def calcola_stats_sh(df_to_analyze):
@@ -484,18 +488,20 @@ def calcola_stats_sh(df_to_analyze):
     stats_sh_winrate = []
     for esito, count in risultati_sh.items():
         perc = round((count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         stats_sh_winrate.append((esito, count, perc, odd_min))
     df_winrate_sh = pd.DataFrame(stats_sh_winrate, columns=["Esito", "Conteggio", "WinRate %", "Odd Minima"])
+    df_winrate_sh["Odd Minima"] = df_winrate_sh["Odd Minima"].fillna('-').astype(str)
     
     over_sh_data = []
     df_sh["tot_goals_sh"] = df_sh["gol_home_sh"] + df_sh["gol_away_sh"]
     for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
         count = (df_sh["tot_goals_sh"] > t).sum()
         perc = round((count / len(df_sh)) * 100, 2)
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         over_sh_data.append([f"Over {t} SH", count, perc, odd_min])
     df_over_sh = pd.DataFrame(over_sh_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_over_sh["Odd Minima"] = df_over_sh["Odd Minima"].fillna('-').astype(str)
 
     btts_sh_count = ((df_sh["gol_home_sh"] > 0) & (df_sh["gol_away_sh"] > 0)).sum()
     no_btts_sh_count = len(df_sh) - btts_sh_count
@@ -504,7 +510,8 @@ def calcola_stats_sh(df_to_analyze):
         ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0]
     ]
     df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %"])
-    df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
+    df_btts_sh["Odd Minima"] = df_btts_sh["Odd Minima"].fillna('-').astype(str)
     
     return df_winrate_sh, df_over_sh, df_btts_sh
 
@@ -513,7 +520,7 @@ def calcola_first_to_score_sh(df_to_analyze):
         return pd.DataFrame(columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
     
     risultati = {"Home Team": 0, "Away Team": 0, "No Goals SH": 0}
-    total_matches = len(df_to_analyze)
+    total_matches_sh = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
         gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
@@ -535,11 +542,13 @@ def calcola_first_to_score_sh(df_to_analyze):
 
     stats = []
     for esito, count in risultati.items():
-        perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        perc = round((count / total_matches_sh) * 100, 2) if total_matches_sh > 0 else 0
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         stats.append((esito, count, perc, odd_min))
     
-    return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
+    return df_stats
 
 def calcola_first_to_score_outcome_sh(df_to_analyze):
     if df_to_analyze.empty:
@@ -553,7 +562,7 @@ def calcola_first_to_score_outcome_sh(df_to_analyze):
         "Nessun Gol SH": 0
     }
     
-    total_matches = len(df_to_analyze)
+    total_matches_sh = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
         gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
@@ -583,11 +592,13 @@ def calcola_first_to_score_outcome_sh(df_to_analyze):
 
     stats = []
     for esito, count in risultati.items():
-        perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        perc = round((count / total_matches_sh) * 100, 2) if total_matches_sh > 0 else 0
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         stats.append((esito, count, perc, odd_min))
     
-    return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
+    return df_stats
 
 def calcola_first_to_score_next_gol_outcome_sh(df_to_analyze):
     if df_to_analyze.empty:
@@ -601,7 +612,7 @@ def calcola_first_to_score_next_gol_outcome_sh(df_to_analyze):
         "Solo un gol SH o nessuno": 0
     }
     
-    total_matches = len(df_to_analyze)
+    total_matches_sh = len(df_to_analyze)
 
     for _, row in df_to_analyze.iterrows():
         gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
@@ -641,11 +652,13 @@ def calcola_first_to_score_next_gol_outcome_sh(df_to_analyze):
 
     stats = []
     for esito, count in risultati.items():
-        perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        perc = round((count / total_matches_sh) * 100, 2) if total_matches_sh > 0 else 0
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         stats.append((esito, count, perc, odd_min))
     
-    return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
+    return df_stats
 
 def calcola_to_score_sh(df_to_analyze):
     if df_to_analyze.empty:
@@ -661,14 +674,18 @@ def calcola_to_score_sh(df_to_analyze):
     
     total_matches = len(df_to_score)
     
-    data = [
-        ["Home Team to Score SH", home_to_score_count, round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["Away Team to Score SH", away_to_score_count, round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0]
-    ]
+    data = []
     
-    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    perc_home = round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_home = round(100 / perc_home, 2) if perc_home > 0 else np.nan
+    data.append(["Home Team to Score SH", home_to_score_count, perc_home, odd_min_home])
+
+    perc_away = round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_away = round(100 / perc_away, 2) if perc_away > 0 else np.nan
+    data.append(["Away Team to Score SH", away_to_score_count, perc_away, odd_min_away])
     
+    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
 def calcola_clean_sheet_sh(df_to_analyze):
@@ -685,14 +702,18 @@ def calcola_clean_sheet_sh(df_to_analyze):
     
     total_matches = len(df_clean_sheet)
     
-    data = [
-        ["Clean Sheet SH (Casa)", home_clean_sheet_count, round((home_clean_sheet_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["Clean Sheet SH (Trasferta)", away_clean_sheet_count, round((away_clean_sheet_count / total_matches) * 100, 2) if total_matches > 0 else 0]
-    ]
+    data = []
     
-    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    perc_home = round((home_clean_sheet_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_home = round(100 / perc_home, 2) if perc_home > 0 else np.nan
+    data.append(["Clean Sheet SH (Casa)", home_clean_sheet_count, perc_home, odd_min_home])
+
+    perc_away = round((away_clean_sheet_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_away = round(100 / perc_away, 2) if perc_away > 0 else np.nan
+    data.append(["Clean Sheet SH (Trasferta)", away_clean_sheet_count, perc_away, odd_min_away])
     
+    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
 def calcola_goals_per_team_period(df_to_analyze, team_type, action_type, period):
@@ -726,10 +747,11 @@ def calcola_goals_per_team_period(df_to_analyze, team_type, action_type, period)
     for r in ranges:
         count = (df_temp[col_to_analyze] > r).sum()
         perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         data.append([f"Over {r}", count, perc, odd_min])
         
     df_results = pd.DataFrame(data, columns=[f"Mercato (Over {period})", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_results["Odd Minima"] = df_results["Odd Minima"].fillna('-').astype(str)
     return df_results
 
 def calcola_winrate(df, col_risultato):
@@ -750,9 +772,11 @@ def calcola_winrate(df, col_risultato):
     stats = []
     for esito, count in risultati.items():
         perc = round((count / totale) * 100, 2) if totale > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         stats.append((esito, count, perc, odd_min))
-    return pd.DataFrame(stats, columns=["Esito", "Conteggio", "WinRate %", "Odd Minima"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "WinRate %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
+    return df_stats
 
 def calcola_first_to_score(df_to_analyze):
     if df_to_analyze.empty:
@@ -782,10 +806,12 @@ def calcola_first_to_score(df_to_analyze):
     stats = []
     for esito, count in risultati.items():
         perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         stats.append((esito, count, perc, odd_min))
     
-    return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
+    return df_stats
 
 def calcola_first_to_score_ht(df_to_analyze):
     if df_to_analyze.empty:
@@ -815,10 +841,12 @@ def calcola_first_to_score_ht(df_to_analyze):
     stats = []
     for esito, count in risultati.items():
         perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         stats.append((esito, count, perc, odd_min))
     
-    return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
+    return df_stats
 
 def mostra_risultati_esatti(df, col_risultato, titolo):
     risultati_interessanti = [
@@ -832,7 +860,7 @@ def mostra_risultati_esatti(df, col_risultato, titolo):
     if df_valid.empty:
         st.subheader(f"Risultati Esatti {titolo} (0 partite)")
         st.info("Nessun dato valido per i risultati esatti nel dataset filtrato.")
-        return
+        return pd.DataFrame() # Ensure to return an empty DataFrame
 
     def classifica_risultato(ris):
         try:
@@ -852,11 +880,13 @@ def mostra_risultati_esatti(df, col_risultato, titolo):
     distribuzione = df_valid["classificato"].value_counts().reset_index()
     distribuzione.columns = [titolo, "Conteggio"]
     distribuzione["Percentuale %"] = (distribuzione["Conteggio"] / len(df_valid) * 100).round(2)
-    distribuzione["Odd Minima"] = distribuzione["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    distribuzione["Odd Minima"] = distribuzione["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
+    distribuzione["Odd Minima"] = distribuzione["Odd Minima"].fillna('-').astype(str)
 
     st.subheader(f"Risultati Esatti {titolo} ({len(df_valid)} partite)")
     styled_df = distribuzione.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
     st.dataframe(styled_df)
+    return distribuzione # Return the DataFrame for further use
 
 def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0):
     if df_to_analyze.empty:
@@ -909,10 +939,10 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0):
             gol_subiti_away += len(goals_in_interval_home)
             
         perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
+        odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else np.nan
         
         perc_almeno_2_gol = round((partite_con_almeno_2_gol / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-"
+        odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else np.nan
 
         avg_ht_goals_after_first_gol = round(np.mean(ht_total_goals_in_timeframe), 2) if ht_total_goals_in_timeframe else 0.00
         avg_ft_goals_after_first_gol = round(np.mean(ft_total_goals_in_timeframe), 2) if ft_total_goals_in_timeframe else 0.00
@@ -1000,10 +1030,10 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0):
             gol_subiti_away += len(goals_in_interval_home)
             
         perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
+        odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else np.nan
 
         perc_almeno_2_gol = round((partite_con_almeno_2_gol / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-"
+        odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else np.nan
 
         avg_ht_goals_after_first_gol = round(np.mean(ht_total_goals_in_timeframe), 2) if ht_total_goals_in_timeframe else 0.00
         avg_ft_goals_after_first_gol = round(np.mean(ft_total_goals_in_timeframe), 2) if ft_total_goals_in_timeframe else 0.00
@@ -1095,10 +1125,10 @@ def mostra_distribuzione_timeband_custom(df_to_analyze, min_start_display=0):
             gol_subiti_away += len(goals_in_interval_home)
             
         perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
+        odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else np.nan
 
         perc_almeno_2_gol = round((partite_con_almeno_2_gol / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-"
+        odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else np.nan
 
         avg_ht_goals_after_first_gol = round(np.mean(ht_total_goals_in_timeframe), 2) if ht_total_goals_in_timeframe else 0.00
         avg_ft_goals_after_first_gol = round(np.mean(ft_total_goals_in_timeframe), 2) if ft_total_goals_in_timeframe else 0.00
@@ -1170,10 +1200,12 @@ def calcola_next_gol(df_to_analyze, start_min, end_min):
     stats = []
     for esito, count in risultati.items():
         perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         stats.append((esito, count, perc, odd_min))
     
-    return pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats = pd.DataFrame(stats, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
+    return df_stats
 
 def calcola_rimonte(df_to_analyze, titolo_analisi):
     if df_to_analyze.empty:
@@ -1212,7 +1244,8 @@ def calcola_rimonte(df_to_analyze, titolo_analisi):
     ]
 
     df_rimonte_stats = pd.DataFrame(rimonte_data, columns=["Tipo Rimonta", "Conteggio", "Percentuale %"])
-    df_rimonte_stats["Odd Minima"] = df_rimonte_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    df_rimonte_stats["Odd Minima"] = df_rimonte_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
+    df_rimonte_stats["Odd Minima"] = df_rimonte_stats["Odd Minima"].fillna('-').astype(str)
     
     squadre_rimonta_completa_home = df_rimonte[df_rimonte["rimonta"] == "Completa - Home"]["Home_Team"].tolist()
     squadre_rimonta_parziale_home = df_rimonte[df_rimonte["rimonta"] == "Parziale - Home"]["Home_Team"].tolist()
@@ -1239,14 +1272,18 @@ def calcola_to_score(df_to_analyze):
     
     total_matches = len(df_to_score)
     
-    data = [
-        ["Home Team to Score", home_to_score_count, round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["Away Team to Score", away_to_score_count, round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0]
-    ]
+    data = []
     
-    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    perc_home = round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_home = round(100 / perc_home, 2) if perc_home > 0 else np.nan
+    data.append(["Home Team to Score", home_to_score_count, perc_home, odd_min_home])
+
+    perc_away = round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_away = round(100 / perc_away, 2) if perc_away > 0 else np.nan
+    data.append(["Away Team to Score", away_to_score_count, perc_away, odd_min_away])
     
+    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
 def calcola_to_score_ht(df_to_analyze):
@@ -1260,14 +1297,18 @@ def calcola_to_score_ht(df_to_analyze):
     
     total_matches = len(df_to_analyze)
     
-    data = [
-        ["Home Team to Score", home_to_score_count, round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["Away Team to Score", away_to_score_count, round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0]
-    ]
+    data = []
     
-    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    perc_home = round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_home = round(100 / perc_home, 2) if perc_home > 0 else np.nan
+    data.append(["Home Team to Score", home_to_score_count, perc_home, odd_min_home])
+
+    perc_away = round((away_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_away = round(100 / perc_away, 2) if perc_away > 0 else np.nan
+    data.append(["Away Team to Score", away_to_score_count, perc_away, odd_min_away])
     
+    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
 def calcola_btts_ht(df_to_analyze):
@@ -1281,14 +1322,18 @@ def calcola_btts_ht(df_to_analyze):
     
     total_matches = len(df_btts_ht)
     
-    data = [
-        ["BTTS SI HT (Dinamica)", btts_count, round((btts_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["BTTS NO HT (Dinamica)", no_btts_count, round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0]
-    ]
-
-    df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    data = []
     
+    perc_si = round((btts_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_si = round(100 / perc_si, 2) if perc_si > 0 else np.nan
+    data.append(["BTTS SI HT (Dinamica)", btts_count, perc_si, odd_min_si])
+
+    perc_no = round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_no = round(100 / perc_no, 2) if perc_no > 0 else np.nan
+    data.append(["BTTS NO HT (Dinamica)", no_btts_count, perc_no, odd_min_no])
+    
+    df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
 def calcola_btts_ft(df_to_analyze):
@@ -1302,14 +1347,18 @@ def calcola_btts_ft(df_to_analyze):
     
     total_matches = len(df_btts_ft)
     
-    data = [
-        ["BTTS SI FT", btts_count, round((btts_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["BTTS NO FT", no_btts_count, round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0]
-    ]
-
-    df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    data = []
     
+    perc_si = round((btts_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_si = round(100 / perc_si, 2) if perc_si > 0 else np.nan
+    data.append(["BTTS SI FT", btts_count, perc_si, odd_min_si])
+
+    perc_no = round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_no = round(100 / perc_no, 2) if perc_no > 0 else np.nan
+    data.append(["BTTS NO FT", no_btts_count, perc_no, odd_min_no])
+    
+    df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
 def calcola_btts_dinamico(df_to_analyze, current_minute_filter_val):
@@ -1337,14 +1386,18 @@ def calcola_btts_dinamico(df_to_analyze, current_minute_filter_val):
 
     no_btts_count = total_matches - btts_si_count
 
-    data = [
-        ["BTTS SI (risultato finale)", btts_si_count, round((btts_si_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["BTTS NO (risultato finale)", no_btts_count, round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0]
-    ]
+    data = []
+    
+    perc_si = round((btts_si_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_si = round(100 / perc_si, 2) if perc_si > 0 else np.nan
+    data.append(["BTTS SI (risultato finale)", btts_si_count, perc_si, odd_min_si])
 
+    perc_no = round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_no = round(100 / perc_no, 2) if perc_no > 0 else np.nan
+    data.append(["BTTS NO (risultato finale)", no_btts_count, perc_no, odd_min_no])
+    
     df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
-
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
     
 def calcola_btts_ht_dinamico(df_to_analyze):
@@ -1358,14 +1411,18 @@ def calcola_btts_ht_dinamico(df_to_analyze):
     
     total_matches = len(df_btts_ht_dinamico)
     
-    data = [
-        ["BTTS SI HT (Dinamica)", btts_count, round((btts_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["BTTS NO HT (Dinamica)", no_btts_count, round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0]
-    ]
-
-    df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    data = []
     
+    perc_si = round((btts_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_si = round(100 / perc_si, 2) if perc_si > 0 else np.nan
+    data.append(["BTTS SI HT (Dinamica)", btts_count, perc_si, odd_min_si])
+
+    perc_no = round((no_btts_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_no = round(100 / perc_no, 2) if perc_no > 0 else np.nan
+    data.append(["BTTS NO HT (Dinamica)", no_btts_count, perc_no, odd_min_no])
+    
+    df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
 def calcola_clean_sheet(df_to_analyze):
@@ -1379,14 +1436,18 @@ def calcola_clean_sheet(df_to_analyze):
     
     total_matches = len(df_clean_sheet)
     
-    data = [
-        ["Clean Sheet (Casa)", home_clean_sheet_count, round((home_clean_sheet_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["Clean Sheet (Trasferta)", away_clean_sheet_count, round((away_clean_sheet_count / total_matches) * 100, 2) if total_matches > 0 else 0]
-    ]
+    data = []
     
-    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    perc_home = round((home_clean_sheet_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_home = round(100 / perc_home, 2) if perc_home > 0 else np.nan
+    data.append(["Clean Sheet (Casa)", home_clean_sheet_count, perc_home, odd_min_home])
+
+    perc_away = round((away_clean_sheet_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_away = round(100 / perc_away, 2) if perc_away > 0 else np.nan
+    data.append(["Clean Sheet (Trasferta)", away_clean_sheet_count, perc_away, odd_min_away])
     
+    df_stats = pd.DataFrame(data, columns=["Esito", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
 def calcola_combo_stats(df_to_analyze):
@@ -1405,15 +1466,22 @@ def calcola_combo_stats(df_to_analyze):
     
     total_matches = len(df_combo)
     
-    data = [
-        ["BTTS SI + Over 2.5", btts_over_2_5_count, round((btts_over_2_5_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["Casa vince + Over 2.5", home_win_over_2_5_count, round((home_win_over_2_5_count / total_matches) * 100, 2) if total_matches > 0 else 0],
-        ["Ospite vince + Over 2.5", away_win_over_2_5_count, round((away_win_over_2_5_count / total_matches) * 100, 2) if total_matches > 0 else 0]
-    ]
-
-    df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %"])
-    df_stats["Odd Minima"] = df_stats["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    data = []
     
+    perc_btts_over = round((btts_over_2_5_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_btts_over = round(100 / perc_btts_over, 2) if perc_btts_over > 0 else np.nan
+    data.append(["BTTS SI + Over 2.5", btts_over_2_5_count, perc_btts_over, odd_min_btts_over])
+
+    perc_home_win_over = round((home_win_over_2_5_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_home_win_over = round(100 / perc_home_win_over, 2) if perc_home_win_over > 0 else np.nan
+    data.append(["Casa vince + Over 2.5", home_win_over_2_5_count, perc_home_win_over, odd_min_home_win_over])
+
+    perc_away_win_over = round((away_win_over_2_5_count / total_matches) * 100, 2) if total_matches > 0 else 0
+    odd_min_away_win_over = round(100 / perc_away_win_over, 2) if perc_away_win_over > 0 else np.nan
+    data.append(["Ospite vince + Over 2.5", away_win_over_2_5_count, perc_away_win_over, odd_min_away_win_over])
+    
+    df_stats = pd.DataFrame(data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
 def calcola_multi_gol(df_to_analyze, col_gol, titolo):
@@ -1435,10 +1503,11 @@ def calcola_multi_gol(df_to_analyze, col_gol, titolo):
     for label, condition in multi_gol_ranges:
         count = df_multi_gol[condition(df_multi_gol[col_gol])].shape[0]
         perc = round((count / total_matches) * 100, 2) if total_matches > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         data.append([f"Multi Gol {label}", count, perc, odd_min])
         
     df_stats = pd.DataFrame(data, columns=[f"Mercato ({titolo})", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_stats["Odd Minima"] = df_stats["Odd Minima"].fillna('-').astype(str)
     return df_stats
 
 def get_score_at_minute(row, target_minute):
@@ -1544,9 +1613,10 @@ def calcola_analisi_dinamica_avanzata(df_base, first_goal_result_at_minute_str, 
     for t in [0.5, 1.5, 2.5]:
         count = (df_temp_ht["tot_goals_ht"] > t).sum()
         perc = round((count / len(df_temp_ht)) * 100, 2) if len(df_temp_ht) > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         over_ht_data.append([f"Over {t} HT", count, perc, odd_min])
     df_over_ht = pd.DataFrame(over_ht_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_over_ht["Odd Minima"] = df_over_ht["Odd Minima"].fillna('-').astype(str) # Fill NaN for display
 
     over_ft_data = []
     df_temp_ft = final_filtered_df.copy()
@@ -1554,9 +1624,10 @@ def calcola_analisi_dinamica_avanzata(df_base, first_goal_result_at_minute_str, 
     for t in [0.5, 1.5, 2.5, 3.5, 4.5]:
         count = (df_temp_ft["tot_goals_ft"] > t).sum()
         perc = round((count / len(df_temp_ft)) * 100, 2) if len(df_temp_ft) > 0 else 0
-        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        odd_min = round(100 / perc, 2) if perc > 0 else np.nan
         over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
     df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+    df_over_ft["Odd Minima"] = df_over_ft["Odd Minima"].fillna('-').astype(str) # Fill NaN for display
 
     df_winrate_ht = calcola_winrate(final_filtered_df, "risultato_ht")
     df_winrate_ft = calcola_winrate(final_filtered_df, "risultato_ft")
@@ -1591,7 +1662,8 @@ def calcola_analisi_dinamica_avanzata(df_base, first_goal_result_at_minute_str, 
         distribuzione = df_valid["classificato"].value_counts().reset_index()
         distribuzione.columns = [titolo, "Conteggio"]
         distribuzione["Percentuale %"] = (distribuzione["Conteggio"] / len(df_valid) * 100).round(2)
-        distribuzione["Odd Minima"] = distribuzione["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+        distribuzione["Odd Minima"] = distribuzione["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
+        distribuzione["Odd Minima"] = distribuzione["Odd Minima"].fillna('-').astype(str) # Fill NaN for display
         return distribuzione
 
     df_exact_scores_ht = get_exact_scores_df(final_filtered_df, "risultato_ht", "Risultato Esatto HT")
@@ -1654,7 +1726,10 @@ if not filtered_df.empty:
     }))
 
     with st.expander("Mostra Statistiche HT"):
-        mostra_risultati_esatti(filtered_df, "risultato_ht", f"HT ({len(filtered_df)})")
+        df_exact_ht_prematch = mostra_risultati_esatti(filtered_df, "risultato_ht", f"HT ({len(filtered_df)})")
+        if not df_exact_ht_prematch.empty:
+            st.dataframe(df_exact_ht_prematch.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+
         st.subheader(f"WinRate HT ({len(filtered_df)})")
         df_winrate_ht = calcola_winrate(filtered_df, "risultato_ht")
         styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
@@ -1666,9 +1741,10 @@ if not filtered_df.empty:
         for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
             count = (df_prematch_ht["tot_goals_ht"] > t).sum()
             perc = round((count / len(df_prematch_ht)) * 100, 2)
-            odd_min = round(100 / perc, 2) if perc > 0 else "-"
+            odd_min = round(100 / perc, 2) if perc > 0 else np.nan
             over_ht_data.append([f"Over {t} HT", count, perc, odd_min])
         df_over_ht = pd.DataFrame(over_ht_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+        df_over_ht["Odd Minima"] = df_over_ht["Odd Minima"].fillna('-').astype(str)
         styled_over_ht = df_over_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_over_ht)
         st.subheader(f"BTTS HT ({len(filtered_df)})")
@@ -1721,9 +1797,10 @@ if not filtered_df.empty:
         stats_sh_winrate = []
         for esito, count in risultati_sh.items():
             perc = round((count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0
-            odd_min = round(100 / perc, 2) if perc > 0 else "-"
+            odd_min = round(100 / perc, 2) if perc > 0 else np.nan
             stats_sh_winrate.append((esito, count, perc, odd_min))
         df_winrate_sh = pd.DataFrame(stats_sh_winrate, columns=["Esito", "Conteggio", "WinRate %", "Odd Minima"])
+        df_winrate_sh["Odd Minima"] = df_winrate_sh["Odd Minima"].fillna('-').astype(str)
         styled_df = df_winrate_sh.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
         st.dataframe(styled_df)
 
@@ -1733,9 +1810,10 @@ if not filtered_df.empty:
         for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
             count = (df_sh["tot_goals_sh"] > t).sum()
             perc = round((count / len(df_sh)) * 100, 2)
-            odd_min = round(100 / perc, 2) if perc > 0 else "-"
+            odd_min = round(100 / perc, 2) if perc > 0 else np.nan
             over_sh_data.append([f"Over {t} SH", count, perc, odd_min])
         df_over_sh = pd.DataFrame(over_sh_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+        df_over_sh["Odd Minima"] = df_over_sh["Odd Minima"].fillna('-').astype(str)
         styled_df = df_over_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df)
         
@@ -1747,7 +1825,8 @@ if not filtered_df.empty:
             ["BTTS NO SH", no_btts_sh_count, round((no_btts_sh_count / total_sh_matches) * 100, 2) if total_sh_matches > 0 else 0]
         ]
         df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %"])
-        df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+        df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else np.nan)
+        df_btts_sh["Odd Minima"] = df_btts_sh["Odd Minima"].fillna('-').astype(str)
         styled_df = df_btts_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df)
         
@@ -1793,10 +1872,13 @@ if not filtered_df.empty:
             st.dataframe(calcola_goals_per_team_period(filtered_df, 'away', 'subiti', 'sh').style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
 
     with st.expander("Mostra Statistiche FT (Finale)"):
-        mostra_risultati_esatti(filtered_df, "risultato_ft", f"FT ({len(filtered_df)})")
+        df_exact_ft_prematch = mostra_risultati_esatti(filtered_df, "risultato_ft", f"FT ({len(filtered_df)})")
+        if not df_exact_ft_prematch.empty:
+            st.dataframe(df_exact_ft_prematch.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+
         st.subheader(f"WinRate FT ({len(filtered_df)})")
         df_winrate_ft = calcola_winrate(filtered_df, "risultato_ft")
-        styled_df_ft = df_winrate_ft.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+        styled_df_ft = df_winrate_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df_ft)
         st.subheader(f"Over Goals FT ({len(filtered_df)})")
         over_ft_data = []
@@ -1805,9 +1887,10 @@ if not filtered_df.empty:
         for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
             count = (df_prematch_ft["tot_goals_ft"] > t).sum()
             perc = round((count / len(df_prematch_ft)) * 100, 2)
-            odd_min = round(100 / perc, 2) if perc > 0 else "-"
+            odd_min = round(100 / perc, 2) if perc > 0 else np.nan
             over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
         df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+        df_over_ft["Odd Minima"] = df_over_ft["Odd Minima"].fillna('-').astype(str)
         styled_over_ft = df_over_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_over_ft)
         st.subheader(f"BTTS FT ({len(filtered_df)})")
@@ -1916,17 +1999,23 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 "Media Gol": [f"{avg_ht_goals_dynamic:.2f}", f"{avg_ft_goals_dynamic:.2f}", f"{avg_sh_goals_dynamic:.2f}"]
             }))
             
-            mostra_risultati_esatti(df_target, "risultato_ht", f"HT ({len(df_target)})")
-            mostra_risultati_esatti(df_target, "risultato_ft", f"FT ({len(df_target)})")
+            df_exact_ht_dynamic = mostra_risultati_esatti(df_target, "risultato_ht", f"HT ({len(df_target)})")
+            if not df_exact_ht_dynamic.empty:
+                st.dataframe(df_exact_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+
+            df_exact_ft_dynamic = mostra_risultati_esatti(df_target, "risultato_ft", f"FT ({len(df_target)})")
+            if not df_exact_ft_dynamic.empty:
+                st.dataframe(df_exact_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+
 
             st.subheader(f"WinRate (Dinamica) ({len(df_target)})")
             st.write("**HT:**")
             df_winrate_ht_dynamic = calcola_winrate(df_target, "risultato_ht")
-            styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+            styled_df_ht = df_winrate_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df_ht)
             st.write("**FT:**")
             df_winrate_ft_dynamic = calcola_winrate(df_target, "risultato_ft")
-            styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+            styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df_ft)
             
             col1, col2 = st.columns(2)
@@ -1939,9 +2028,10 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
                     count = (df_target_goals["tot_goals_ht"] > t).sum()
                     perc = round((count / len(df_target_goals)) * 100, 2)
-                    odd_min = round(100 / perc, 2) if perc > 0 else "-"
+                    odd_min = round(100 / perc, 2) if perc > 0 else np.nan
                     over_ht_data_dynamic.append([f"Over {t} HT", count, perc, odd_min])
                 df_over_ht_dynamic = pd.DataFrame(over_ht_data_dynamic, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+                df_over_ht_dynamic["Odd Minima"] = df_over_ht_dynamic["Odd Minima"].fillna('-').astype(str)
                 styled_over_ht_dynamic = df_over_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_over_ht_dynamic)
             
@@ -1951,9 +2041,10 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
                     count = (df_target_goals["tot_goals_ft"] > t).sum()
                     perc = round((count / len(df_target_goals)) * 100, 2)
-                    odd_min = round(100 / perc, 2) if perc > 0 else "-"
+                    odd_min = round(100 / perc, 2) if perc > 0 else np.nan
                     over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
                 df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+                df_over_ft["Odd Minima"] = df_over_ft["Odd Minima"].fillna('-').astype(str)
                 styled_over_ft = df_over_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_over_ft)
             
@@ -1966,7 +2057,6 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
                 st.dataframe(styled_df)
             with col2:
                 st.write("### FT")
-                # Correzione qui: rimosso 'risultati_correnti'
                 df_btts_ft_dynamic = calcola_btts_dinamico(df_target, start_min) 
                 styled_df = df_btts_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df)
@@ -2095,19 +2185,24 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
                 "Media Gol": [f"{avg_ht_goals:.2f}", f"{avg_ft_goals:.2f}", f"{avg_sh_goals:.2f}"]
             }))
             
-            mostra_risultati_esatti(h2h_df, "risultato_ht", f"HT H2H ({len(h2h_df)})")
-            mostra_risultati_esatti(h2h_df, "risultato_ft", f"FT H2H ({len(h2h_df)})")
+            df_exact_ht_h2h = mostra_risultati_esatti(h2h_df, "risultato_ht", f"HT H2H ({len(h2h_df)})")
+            if not df_exact_ht_h2h.empty:
+                st.dataframe(df_exact_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
+
+            df_exact_ft_h2h = mostra_risultati_esatti(h2h_df, "risultato_ft", f"FT H2H ({len(h2h_df)})")
+            if not df_exact_ft_h2h.empty:
+                st.dataframe(df_exact_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %']))
 
             col1, col2 = st.columns(2)
             with col1:
                 st.subheader(f"WinRate HT H2H ({len(h2h_df)})")
                 df_winrate_ht_h2h = calcola_winrate(h2h_df, "risultato_ht")
-                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+                styled_df_ht = df_winrate_ht_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df_ht)
             with col2:
                 st.subheader(f"WinRate FT H2H ({len(h2h_df)})")
                 df_winrate_ft_h2h = calcola_winrate(h2h_df, "risultato_ft")
-                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+                styled_df_ft = df_winrate_ft_h2h.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_df_ft)
             
             st.subheader(f"Doppia Chance (H2H) ({len(h2h_df)})")
@@ -2133,9 +2228,10 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
                 for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
                     count = (df_h2h_goals["tot_goals_ht"] > t).sum()
                     perc = round((count / len(df_h2h_goals)) * 100, 2)
-                    odd_min = round(100 / perc, 2) if perc > 0 else "-"
+                    odd_min = round(100 / perc, 2) if perc > 0 else np.nan
                     over_ht_data.append([f"Over {t} HT", count, perc, odd_min])
                 df_over_ht = pd.DataFrame(over_ht_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+                df_over_ht["Odd Minima"] = df_over_ht["Odd Minima"].fillna('-').astype(str)
                 styled_over_ht = df_over_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_over_ht)
 
@@ -2145,9 +2241,10 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
                 for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
                     count = (df_h2h_goals["tot_goals_ft"] > t).sum()
                     perc = round((count / len(df_h2h_goals)) * 100, 2)
-                    odd_min = round(100 / perc, 2) if perc > 0 else "-"
+                    odd_min = round(100 / perc, 2) if perc > 0 else np.nan
                     over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
                 df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+                df_over_ft["Odd Minima"] = df_over_ft["Odd Minima"].fillna('-').astype(str)
                 styled_over_ft = df_over_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
                 st.dataframe(styled_over_ft)
             
