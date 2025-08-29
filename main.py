@@ -1029,8 +1029,8 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
         odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-" # Aggiunto
 
         # Calcola le medie dei gol totali per le partite con gol in questo timeframe
-        avg_ht_goals_after_first_goal = round(np.mean(ht_total_goals_in_timeframe), 2) if ht_total_goals_in_timeframe else 0.00
-        avg_ft_goals_after_first_goal = round(np.mean(ft_total_goals_in_timeframe), 2) if ft_total_goals_in_timeframe else 0.00
+        avg_ht_goals_after_first_gol = round(np.mean(ht_total_goals_in_timeframe), 2) if ht_total_goals_in_timeframe else 0.00
+        avg_ft_goals_after_first_gol = round(np.mean(ft_total_goals_in_timeframe), 2) if ft_total_goals_in_timeframe else 0.00
 
         risultati.append([
             label, 
@@ -1043,8 +1043,8 @@ def mostra_distribuzione_timeband(df_to_analyze, min_start_display=0): # Aggiunt
             gol_subiti_home, 
             gol_fatti_away, 
             gol_subiti_away,
-            avg_ht_goals_after_first_goal, # Nuova colonna
-            avg_ft_goals_after_first_goal  # Nuova colonna
+            avg_ht_goals_after_first_gol, # Nuova colonna
+            avg_ft_goals_after_first_gol  # Nuova colonna
         ])
     
     if not risultati: # Se tutti gli intervalli sono stati saltati
@@ -1128,8 +1128,8 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
         odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-" # Aggiunto
 
         # Calcola le medie dei gol totali per le partite con gol in questo timeframe
-        avg_ht_goals_after_first_goal = round(np.mean(ht_total_goals_in_timeframe), 2) if ht_total_goals_in_timeframe else 0.00
-        avg_ft_goals_after_first_goal = round(np.mean(ft_total_goals_in_timeframe), 2) if ft_total_goals_in_timeframe else 0.00
+        avg_ht_goals_after_first_gol = round(np.mean(ht_total_goals_in_timeframe), 2) if ht_total_goals_in_timeframe else 0.00
+        avg_ft_goals_after_first_gol = round(np.mean(ft_total_goals_in_timeframe), 2) if ft_total_goals_in_timeframe else 0.00
 
         risultati.append([
             label, 
@@ -1142,8 +1142,8 @@ def mostra_distribuzione_timeband_5min(df_to_analyze, min_start_display=0): # Ag
             gol_subiti_home,
             gol_fatti_away,
             gol_subiti_away,
-            avg_ht_goals_after_first_goal, # Nuova colonna
-            avg_ft_goals_after_first_goal  # Nuova colonna
+            avg_ht_goals_after_first_gol, # Nuova colonna
+            avg_ft_goals_after_first_gol  # Nuova colonna
         ])
     
     if not risultati: # Se tutti gli intervalli sono stati saltati
@@ -1179,9 +1179,9 @@ def mostra_distribuzione_timeband_custom(df_to_analyze, min_start_display=0):
         st.warning("Il DataFrame per l'analisi a timing personalizzato è vuoto.")
         return
 
-    # Nuovi intervalli personalizzati, incluso 46-70
-    custom_intervalli = [(1, 20), (21, 45), (46, 70), (70, 90), (75, 90), (80, 90), (85, 95)]
-    custom_label_intervalli = ["1-20", "21-45", "46-70", "70-90", "75-90", "80-90", "85-95"]
+    # Nuovi intervalli personalizzati, incluso 46-75
+    custom_intervalli = [(1, 20), (21, 45), (46, 75), (70, 90), (75, 90), (80, 90), (85, 95)]
+    custom_label_intervalli = ["1-20", "21-45", "46-75", "70-90", "75-90", "80-90", "85-95"]
 
     risultati = []
     total_matches = len(df_to_analyze)
@@ -1232,8 +1232,8 @@ def mostra_distribuzione_timeband_custom(df_to_analyze, min_start_display=0):
         odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-"
 
         # Calcola le medie dei gol totali per le partite con gol in questo timeframe
-        avg_ht_goals_after_first_goal = round(np.mean(ht_total_goals_in_timeframe), 2) if ht_total_goals_in_timeframe else 0.00
-        avg_ft_goals_after_first_goal = round(np.mean(ft_total_goals_in_timeframe), 2) if ft_total_goals_in_timeframe else 0.00
+        avg_ht_goals_after_first_gol = round(np.mean(ht_total_goals_in_timeframe), 2) if ht_total_goals_in_timeframe else 0.00
+        avg_ft_goals_after_first_gol = round(np.mean(ft_total_goals_in_timeframe), 2) if ft_total_goals_in_timeframe else 0.00
 
         risultati.append([
             label, 
@@ -1246,8 +1246,8 @@ def mostra_distribuzione_timeband_custom(df_to_analyze, min_start_display=0):
             gol_subiti_home,
             gol_fatti_away,
             gol_subiti_away,
-            avg_ht_goals_after_first_goal, # Nuova colonna
-            avg_ft_goals_after_first_goal  # Nuova colonna
+            avg_ht_goals_after_first_gol, # Nuova colonna
+            avg_ft_goals_after_first_gol  # Nuova colonna
         ])
     
     if not risultati:
@@ -1590,6 +1590,84 @@ def calcola_multi_gol(df_to_analyze, col_gol, titolo):
         
     df_stats = pd.DataFrame(data, columns=[f"Mercato ({titolo})", "Conteggio", "Percentuale %", "Odd Minima"])
     return df_stats
+
+# --- NUOVA FUNZIONE PER ANALISI PRIMO GOL IN TIMEBAND ---
+def calcola_analisi_primo_gol_timeband(df_to_analyze, selected_result_filter, selected_timeband_filter):
+    if df_to_analyze.empty:
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    # Filtra per il risultato selezionabile
+    if selected_result_filter != "Tutti":
+        # Assumiamo che il risultato selezionabile si riferisca al risultato FT o HT
+        # Qui useremo FT, ma potresti aggiungere un'opzione per scegliere HT
+        df_filtered_by_result = df_to_analyze[df_to_analyze["risultato_ft"] == selected_result_filter].copy()
+    else:
+        df_filtered_by_result = df_to_analyze.copy()
+
+    # Definisci i timeband per il primo gol
+    primo_gol_timebands = [(1, 10), (11, 20), (21, 30), (31, 40), (41, 45), (46, 55), (56, 65), (66, 75), (76, 85), (86, 90)]
+    primo_gol_label_timebands = ["1-10", "11-20", "21-30", "31-40", "41-45", "46-55", "56-65", "66-75", "76-85", "86-90"]
+
+    # Trova l'intervallo di tempo selezionato
+    selected_interval = None
+    for i, label in enumerate(primo_gol_label_timebands):
+        if label == selected_timeband_filter:
+            selected_interval = primo_gol_timebands[i]
+            break
+
+    if selected_interval is None:
+        st.warning(f"Timeband '{selected_timeband_filter}' non valido. Impossibile filtrare per primo gol.")
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    final_filtered_df = pd.DataFrame()
+    for _, row in df_filtered_by_result.iterrows():
+        gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+        gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
+
+        all_goals_minutes = []
+        if gol_home_str:
+            all_goals_minutes.extend([int(x) for x in gol_home_str.split(";") if x.isdigit()])
+        if gol_away_str:
+            all_goals_minutes.extend([int(x) for x in gol_away_str.split(";") if x.isdigit()])
+        
+        if all_goals_minutes:
+            first_goal_minute = min(all_goals_minutes)
+            if selected_interval[0] <= first_goal_minute <= selected_interval[1]:
+                final_filtered_df = pd.concat([final_filtered_df, pd.DataFrame([row])], ignore_index=True)
+
+    if final_filtered_df.empty:
+        st.info(f"Nessuna partita trovata con risultato '{selected_result_filter}' e primo gol nel timeframe '{selected_timeband_filter}'.")
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    # Calcola le statistiche richieste sul final_filtered_df
+    # Over Goals HT
+    over_ht_data = []
+    df_temp_ht = final_filtered_df.copy()
+    df_temp_ht["tot_goals_ht"] = df_temp_ht["Gol_Home_HT"] + df_temp_ht["Gol_Away_HT"]
+    for t in [0.5, 1.5, 2.5]: # Puoi aggiungere altri valori se necessario
+        count = (df_temp_ht["tot_goals_ht"] > t).sum()
+        perc = round((count / len(df_temp_ht)) * 100, 2) if len(df_temp_ht) > 0 else 0
+        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        over_ht_data.append([f"Over {t} HT", count, perc, odd_min])
+    df_over_ht = pd.DataFrame(over_ht_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+
+    # Over Goals FT
+    over_ft_data = []
+    df_temp_ft = final_filtered_df.copy()
+    df_temp_ft["tot_goals_ft"] = df_temp_ft["Gol_Home_FT"] + df_temp_ft["Gol_Away_FT"]
+    for t in [0.5, 1.5, 2.5, 3.5, 4.5]: # Puoi aggiungere altri valori se necessario
+        count = (df_temp_ft["tot_goals_ft"] > t).sum()
+        perc = round((count / len(df_temp_ft)) * 100, 2) if len(df_temp_ft) > 0 else 0
+        odd_min = round(100 / perc, 2) if perc > 0 else "-"
+        over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
+    df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+
+    # WinRate HT e FT
+    df_winrate_ht = calcola_winrate(final_filtered_df, "risultato_ht")
+    df_winrate_ft = calcola_winrate(final_filtered_df, "risultato_ft")
+
+    return df_over_ht, df_over_ft, df_winrate_ht, df_winrate_ft, final_filtered_df
+
 
 # SEZIONE 1: Analisi Timeband per Campionato
 st.subheader("1. Analisi Timeband per Campionato")
