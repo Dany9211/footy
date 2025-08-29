@@ -1186,7 +1186,7 @@ def calcola_next_gol(df_to_analyze, start_min, end_min):
         
         if next_home_goal < next_away_goal:
             risultati["Prossimo Gol: Home"] += 1
-        elif next_away_goal < min_home_goal:
+        elif next_away_goal < next_home_goal: # Correzione qui
             risultati["Prossimo Gol: Away"] += 1
         else:
             if next_home_goal == float('inf'):
