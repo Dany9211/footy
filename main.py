@@ -397,10 +397,10 @@ st.markdown("---")
 
 st.dataframe(filtered_df.head(50))
 
-# --- Funzione per calcolare la media gol per tiri in porta ---
-def calcola_media_gol_per_tiri(df_to_analyze, title_prefix):
+# --- Funzione per calcolare il tasso di conversione (gol per tiri) ---
+def mostra_tasso_conversione(df_to_analyze, title_prefix):
     if df_to_analyze.empty:
-        st.info("DataFrame vuoto. Impossibile calcolare la media gol per tiri.")
+        st.info("DataFrame vuoto. Impossibile calcolare il tasso di conversione.")
         return
     
     df_temp = df_to_analyze.copy()
@@ -410,21 +410,26 @@ def calcola_media_gol_per_tiri(df_to_analyze, title_prefix):
         df_temp["total_shots_on_target"] = df_temp["sutht"] + df_temp["sutat"]
         df_temp["total_goals"] = df_temp["Gol_Home_FT"] + df_temp["Gol_Away_FT"]
 
-        # Evita la divisione per zero: solo considera le partite con almeno un tiro in porta
-        df_valid = df_temp[df_temp["total_shots_on_target"] > 0].copy()
-
+        # Rimuovi le righe con tiri non validi o mancanti
+        df_valid = df_temp[df_temp["total_shots_on_target"] >= 1].copy()
+        
         if not df_valid.empty:
-            # Calcola il rapporto gol/tiri per ogni partita valida
-            df_valid["goals_per_shot_ratio"] = df_valid["total_goals"] / df_valid["total_shots_on_target"]
+            risultati = []
+            shots_levels = [1, 2, 3, 4, 5, 6]
             
-            # Calcola la media di questo rapporto
-            media = df_valid["goals_per_shot_ratio"].mean()
-            st.subheader(f"Media Gol per Tiri in Porta ({title_prefix})")
-            st.metric("Media", f"{media:.2f}")
-            st.write(f"*(Calcolata su {len(df_valid)} partite con almeno un tiro in porta)*")
+            for shots in shots_levels:
+                df_subset = df_valid[df_valid["total_shots_on_target"] == shots]
+                if not df_subset.empty:
+                    num_partite = len(df_subset)
+                    media_gol = df_subset["total_goals"].mean()
+                    risultati.append([shots, num_partite, f"{media_gol:.2f}"])
+            
+            df_result = pd.DataFrame(risultati, columns=["Tiri in Porta", "Numero Partite", "Media Gol"])
+            st.subheader(f"Tasso di Conversione (Gol per Tiri) ({title_prefix})")
+            st.dataframe(df_result)
         else:
-            st.subheader(f"Media Gol per Tiri in Porta ({title_prefix})")
-            st.info("Nessun tiro in porta valido trovato nel dataset analizzato.")
+            st.subheader(f"Tasso di Conversione (Gol per Tiri) ({title_prefix})")
+            st.info("Nessun dato valido per i tiri in porta trovato nel dataset analizzato.")
     else:
         st.error(f"Colonne necessarie (sutht, sutat, Gol_Home_FT, Gol_Away_FT) non trovate nel dataset.")
 
@@ -1583,7 +1588,7 @@ if selected_league != "Tutte":
     st.write(f"Analisi basata su **{len(df_league_only)}** partite del campionato **{selected_league}**.")
     
     # Aggiungi la nuova metrica
-    calcola_media_gol_per_tiri(df_league_only, f"{selected_league}")
+    mostra_tasso_conversione(df_league_only, f"{selected_league}")
     
     st.write("---")
     col1, col2, col3 = st.columns(3) # Aggiunto col3 per la nuova finestra
@@ -1605,7 +1610,7 @@ st.write(f"Analisi basata su **{len(filtered_df)}** partite filtrate da tutti i 
 if not filtered_df.empty:
     
     # Aggiungi la nuova metrica
-    calcola_media_gol_per_tiri(filtered_df, "Filtri Sidebar")
+    mostra_tasso_conversione(filtered_df, "Filtri Sidebar")
     
     st.write("---")
     col1, col2, col3 = st.columns(3) # Aggiunto col3 per la nuova finestra
@@ -2426,6 +2431,31 @@ if st.button("Avvia Analisi Pattern Gol"):
 
         # --- Calcolo stats dopo il minuto di partenza ---
         df_after_start_min = df_pattern_filtered_min.copy()
+
+        # Aggiungi un expander per le stats HT dell'analisi Pattern
+        with st.expander("Mostra Statistiche HT (Pattern)"):
+            st.write(f"Statistiche HT per le **{len(df_after_start_min)}** partite filtrate dal pattern.")
+            mostra_risultati_esatti(df_after_start_min, "risultato_ht", f"HT ({len(df_after_start_min)})")
+            st.subheader(f"WinRate HT ({len(df_after_start_min)})")
+            df_winrate_ht = calcola_winrate(df_after_start_min, "risultato_ht")
+            styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+            st.dataframe(styled_df_ht)
+            st.subheader(f"Over Goals HT ({len(df_after_start_min)})")
+            over_ht_data = []
+            df_temp_ht = df_after_start_min.copy()
+            df_temp_ht["tot_goals_ht"] = df_temp_ht["Gol_Home_HT"] + df_temp_ht["Gol_Away_HT"]
+            for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
+                count = (df_temp_ht["tot_goals_ht"] > t).sum()
+                perc = round((count / len(df_temp_ht)) * 100, 2)
+                odd_min = round(100 / perc, 2) if perc > 0 else "-"
+                over_ht_data.append([f"Over {t} HT", count, perc, odd_min])
+            df_over_ht = pd.DataFrame(over_ht_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+            styled_over_ht = df_over_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_over_ht)
+            st.subheader(f"BTTS HT ({len(df_after_start_min)})")
+            df_btts_ht = calcola_btts_ht(df_after_start_min)
+            styled_df = df_btts_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_df)
         
         # Risultato finale dopo il minuto di partenza
         st.subheader(f"Risultato Finale da minuto {start_min_patt} ({len(df_after_start_min)})")
@@ -2586,7 +2616,7 @@ with st.expander("Configura e avvia il Backtest"):
                     continue
 
             investimento_totale = numero_scommesse * stake
-            roi = (profit_loss / investimento_totale) * 100 if investimento_totale > 0 else 0
+            roi = (profit_loss / investimento_totale) * 100 if investimento_scommesse > 0 else 0
             win_rate = (vincite / numero_scommesse) * 100 if numero_scommesse > 0 else 0
             odd_minima = 100 / win_rate if win_rate > 0 else 0
             
