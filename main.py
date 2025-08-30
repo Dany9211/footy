@@ -4,7 +4,7 @@ import numpy as np
 import datetime # Importazione necessaria per lavorare con le date
 
 st.set_page_config(page_title="Analisi Campionati Next Gol e stats live", layout="wide")
-st.title("Analisi Tabella 23agosto2025")
+st.title("Analisi Tabella 23agosto2023")
 
 # --- Funzione per il caricamento del file CSV ---
 @st.cache_data
@@ -1809,10 +1809,14 @@ if not filtered_df.empty:
         df_prematch_ft = filtered_df.copy()
         df_prematch_ft["tot_goals_ft"] = df_prematch_ft["Gol_Home_FT"] + df_prematch_ft["Gol_Away_FT"]
         for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
-            count = (df_prematch_ft["tot_goals_ft"] > t).sum()
-            perc = round((count / len(df_prematch_ft)) * 100, 2)
-            odd_min = round(100 / perc, 2) if perc > 0 else "-"
-            over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
+            count_over = (df_prematch_ft["tot_goals_ft"] > t).sum()
+            count_under = (df_prematch_ft["tot_goals_ft"] < (t + 1)).sum()
+            perc_over = round((count_over / len(df_prematch_ft)) * 100, 2)
+            perc_under = round((count_under / len(df_prematch_ft)) * 100, 2)
+            odd_min_over = round(100 / perc_over, 2) if perc_over > 0 else "-"
+            odd_min_under = round(100 / perc_under, 2) if perc_under > 0 else "-"
+            over_ft_data.append([f"Over {t} FT", count_over, perc_over, odd_min_over])
+            over_ft_data.append([f"Under {t+0.5} FT", count_under, perc_under, odd_min_under])
         df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
         styled_over_ft = df_over_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_over_ft)
@@ -2462,14 +2466,8 @@ if st.button("Avvia Analisi Pattern Gol"):
             df_btts_ht = calcola_btts_ht(df_after_start_min)
             styled_df = df_btts_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df)
-            # Calcolo e visualizzazione BTTS FT
-            st.subheader(f"BTTS FT ({len(df_after_start_min)})")
-            df_btts_ft_dynamic = calcola_btts_dinamico(df_after_start_min, start_min_patt, risultato_attuale_patt)
-            styled_df = df_btts_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-            st.dataframe(styled_df)
-            # Calcolo e visualizzazione To Score
-            st.subheader(f"To Score ({len(df_after_start_min)})")
-            styled_df = calcola_to_score(df_after_start_min).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.subheader(f"To Score HT ({len(df_after_start_min)})")
+            styled_df = calcola_to_score_ht(df_after_start_min).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df)
         
         # Risultato finale dopo il minuto di partenza
@@ -2481,18 +2479,35 @@ if st.button("Avvia Analisi Pattern Gol"):
         styled_df_ft = calcola_winrate(df_after_start_min, "risultato_ft").style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
         st.dataframe(styled_df_ft)
 
-        # Over Goals FT da minuto di partenza
-        st.subheader(f"Over Goals FT da minuto {start_min_patt} ({len(df_after_start_min)})")
-        over_ft_data = []
+        # Over/Under Goals FT da minuto di partenza
+        st.subheader(f"Over/Under Goals FT da minuto {start_min_patt} ({len(df_after_start_min)})")
+        over_under_data = []
         df_after_start_min["tot_goals_ft"] = df_after_start_min["Gol_Home_FT"] + df_after_start_min["Gol_Away_FT"]
         for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
-            count = (df_after_start_min["tot_goals_ft"] > t).sum()
-            perc = round((count / len(df_after_start_min)) * 100, 2)
-            odd_min = round(100 / perc, 2) if perc > 0 else "-"
-            over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
-        df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
-        styled_over_ft = df_over_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-        st.dataframe(styled_over_ft)
+            count_over = (df_after_start_min["tot_goals_ft"] > t).sum()
+            count_under = (df_after_start_min["tot_goals_ft"] < t+1).sum() # L'under X.5 è l'under Y
+            perc_over = round((count_over / len(df_after_start_min)) * 100, 2)
+            perc_under = round((count_under / len(df_after_start_min)) * 100, 2)
+            odd_min_over = round(100 / perc_over, 2) if perc_over > 0 else "-"
+            odd_min_under = round(100 / perc_under, 2) if perc_under > 0 else "-"
+            over_under_data.append([f"Over {t} FT", count_over, perc_over, odd_min_over])
+            over_under_data.append([f"Under {t+0.5} FT", count_under, perc_under, odd_min_under])
+        df_over_under_ft = pd.DataFrame(over_under_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+        styled_over_under_ft = df_over_under_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+        st.dataframe(styled_over_under_ft)
+        
+        # BTTS FT e To Score FT
+        st.subheader(f"BTTS FT e To Score FT ({len(df_after_start_min)})")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("### BTTS FT")
+            df_btts_ft_dynamic = calcola_btts_dinamico(df_after_start_min, start_min_patt, risultato_attuale_patt)
+            styled_df = df_btts_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_df)
+        with col2:
+            st.write("### To Score FT")
+            styled_df = calcola_to_score(df_after_start_min).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_df)
         
         # Prossimo Gol da minuto di partenza
         st.subheader(f"Next Goal (da minuto {start_min_patt}) ({len(df_after_start_min)})")
