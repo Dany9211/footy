@@ -4,7 +4,7 @@ import numpy as np
 import datetime # Importazione necessaria per lavorare con le date
 
 st.set_page_config(page_title="Analisi Campionati Next Gol e stats live", layout="wide")
-st.title("Analisi Tabella 23agosto2023")
+st.title("Analisi Tabella 23agosto2025")
 
 # --- Funzione per il caricamento del file CSV ---
 @st.cache_data
@@ -415,7 +415,7 @@ def mostra_tasso_conversione(df_to_analyze, title_prefix):
         
         if not df_valid.empty:
             risultati = []
-            shots_levels = [1, 2, 3, 4, 5, 6]
+            shots_levels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             
             for shots in shots_levels:
                 df_subset = df_valid[df_valid["total_shots_on_target"] == shots]
@@ -618,7 +618,9 @@ def calcola_stats_sh(df_to_analyze):
         odd_min = round(100 / perc, 2) if perc > 0 else "-"
         stats_sh_winrate.append((esito, count, perc, odd_min))
     df_winrate_sh = pd.DataFrame(stats_sh_winrate, columns=["Esito", "Conteggio", "WinRate %", "Odd Minima"])
-    
+    styled_df = df_winrate_sh.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+    st.dataframe(styled_df)
+
     # Over Goals SH
     over_sh_data = []
     df_sh["tot_goals_sh"] = df_sh["gol_home_sh"] + df_sh["gol_away_sh"]
@@ -628,6 +630,8 @@ def calcola_stats_sh(df_to_analyze):
         odd_min = round(100 / perc, 2) if perc > 0 else "-"
         over_sh_data.append([f"Over {t} SH", count, perc, odd_min])
     df_over_sh = pd.DataFrame(over_sh_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+    styled_df = df_over_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+    st.dataframe(styled_df)
 
     # BTTS SH
     btts_sh_count = ((df_sh["gol_home_sh"] > 0) & (df_sh["gol_away_sh"] > 0)).sum()
@@ -638,6 +642,8 @@ def calcola_stats_sh(df_to_analyze):
     ]
     df_btts_sh = pd.DataFrame(btts_sh_data, columns=["Mercato", "Conteggio", "Percentuale %"])
     df_btts_sh["Odd Minima"] = df_btts_sh["Percentuale %"].apply(lambda x: round(100/x, 2) if x > 0 else "-")
+    styled_df = df_btts_sh.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+    st.dataframe(styled_df)
     
     return df_winrate_sh, df_over_sh, df_btts_sh
 
