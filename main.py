@@ -194,7 +194,7 @@ if "Anno" in df.columns:
         selected_anno_display = st.sidebar.selectbox("Seleziona Anno", display_options)
 
         if selected_anno_display == "Tutti":
-            # Se è "Tutti", rimuovi il filtro se presente
+            # Se è "Tutti', rimuovi il filtro se presente
             if "Anno" in filters:
                 del filters["Anno"]
         elif selected_anno_display == "Anno Corrente":
@@ -2361,23 +2361,6 @@ if st.button("Avvia Analisi Pattern Gol"):
     
     # Filtra il DataFrame in base al minuto iniziale selezionato per l'analisi successiva
     df_pattern_filtered_min = df_pattern.copy()
-    if start_min_patt > 1:
-        def check_current_score(row):
-            gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
-            gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
-            home_score = sum(1 for g in gol_home if g < start_min_patt)
-            away_score = sum(1 for g in gol_away if g < start_min_patt)
-            # Ritorna il punteggio attuale al minuto selezionato
-            return f"{home_score}-{away_score}"
-        
-        # Aggiungi una colonna temporanea per il risultato al minuto di partenza
-        df_pattern_filtered_min['risultato_start_min'] = df_pattern_filtered_min.apply(check_current_score, axis=1)
-
-        # Filtra per rimuovere le partite in cui il punteggio FT è già fissato al minuto di partenza
-        # Esempio: se il risultato è 1-0 e l'utente ha filtrato per 1-0 al minuto 10,
-        # ma la partita è terminata 1-0, non la consideriamo
-        # Questo è gestito implicitamente dai calcoli successivi, ma è un buon punto di controllo
-        # L'analisi si concentra sui mercati che possono ancora cambiare, quindi i FT e HT non vanno calcolati da qui
     
     # Mostra i risultati
     st.markdown("---")
@@ -2386,18 +2369,35 @@ if st.button("Avvia Analisi Pattern Gol"):
     else:
         st.write(f"Analisi basata su **{len(df_pattern_filtered_min)}** partite con il pattern di gol e i filtri selezionati.")
 
+        # --- Calcolo stats dopo il minuto di partenza ---
+        df_after_start_min = df_pattern_filtered_min.copy()
+        def get_goals_after_min(row, start_minute):
+            gol_home_str = str(row.get("Minutaggio_Gol_Home", ""))
+            gol_away_str = str(row.get("Minutaggio_gol_Away", ""))
+            gol_home_after = sum(1 for g in [int(x) for x in gol_home_str.split(";") if x.isdigit()] if g >= start_minute)
+            gol_away_after = sum(1 for g in [int(x) for x in gol_away_str.split(";") if x.isdigit()] if g >= start_minute)
+            return gol_home_after, gol_away_after
+        
+        df_after_start_min[["Gol_Home_After", "Gol_Away_After"]] = df_after_start_min.apply(
+            lambda row: pd.Series(get_goals_after_min(row, start_min_patt)), axis=1
+        )
+        
+        # Risultato finale dopo il minuto di partenza
+        st.subheader(f"Risultato Finale da minuto {start_min_patt} ({len(df_after_start_min)})")
+        mostra_risultati_esatti(df_after_start_min, "risultato_ft", f"FT da {start_min_patt}")
+
         # Winrate dopo il minuto di partenza
-        st.subheader(f"WinRate Finale da minuto {start_min_patt} ({len(df_pattern_filtered_min)})")
-        styled_df_ft = calcola_winrate(df_pattern_filtered_min, "risultato_ft").style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+        st.subheader(f"WinRate Finale da minuto {start_min_patt} ({len(df_after_start_min)})")
+        styled_df_ft = calcola_winrate(df_after_start_min, "risultato_ft").style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
         st.dataframe(styled_df_ft)
 
         # Over Goals FT da minuto di partenza
-        st.subheader(f"Over Goals FT da minuto {start_min_patt} ({len(df_pattern_filtered_min)})")
+        st.subheader(f"Over Goals FT da minuto {start_min_patt} ({len(df_after_start_min)})")
         over_ft_data = []
-        df_pattern_filtered_min["tot_goals_ft"] = df_pattern_filtered_min["Gol_Home_FT"] + df_pattern_filtered_min["Gol_Away_FT"]
+        df_after_start_min["tot_goals_ft"] = df_after_start_min["Gol_Home_FT"] + df_after_start_min["Gol_Away_FT"]
         for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
-            count = (df_pattern_filtered_min["tot_goals_ft"] > t).sum()
-            perc = round((count / len(df_pattern_filtered_min)) * 100, 2)
+            count = (df_after_start_min["tot_goals_ft"] > t).sum()
+            perc = round((count / len(df_after_start_min)) * 100, 2)
             odd_min = round(100 / perc, 2) if perc > 0 else "-"
             over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
         df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
@@ -2405,9 +2405,69 @@ if st.button("Avvia Analisi Pattern Gol"):
         st.dataframe(styled_over_ft)
         
         # Prossimo Gol da minuto di partenza
-        st.subheader(f"Next Goal (da minuto {start_min_patt}) ({len(df_pattern_filtered_min)})")
-        styled_df = calcola_next_goal(df_pattern_filtered_min, start_min_patt, 90).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+        st.subheader(f"Next Goal (da minuto {start_min_patt}) ({len(df_after_start_min)})")
+        styled_df = calcola_next_goal(df_after_start_min, start_min_patt, 90).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df)
+        
+        # Distribuzione Gol per timeband
+        st.subheader("Distribuzione Gol per Timeframe dopo il pattern")
+        col1_tb, col2_tb, col3_tb = st.columns(3)
+        with col1_tb:
+            st.write("**15min**")
+            mostra_distribuzione_timeband(df_after_start_min, min_start_display=start_min_patt)
+        with col2_tb:
+            st.write("**5min**")
+            mostra_distribuzione_timeband_5min(df_after_start_min, min_start_display=start_min_patt)
+        with col3_tb:
+            st.write("**Personalizzata**")
+            # Nuova logica per la timeband personalizzata basata sul minuto di inizio
+            def mostra_distribuzione_timeband_pattern(df_to_analyze, min_start_display):
+                if df_to_analyze.empty:
+                    st.warning("Il DataFrame per l'analisi a timing personalizzato è vuoto.")
+                    return
+                
+                custom_intervalli = [(0,5), (0,10), (11,20), (21,30), (31,39), (40,45), (46,55), (56,65), (66,75), (75,80), (75,90), (80,90), (85,90)]
+                custom_label_intervalli = ["0-5", "0-10", "11-20", "21-30", "31-39", "40-45", "46-55", "56-65", "66-75", "75-80", "75-90", "80-90", "85-90"]
+
+                risultati = []
+                total_matches = len(df_to_analyze)
+                for (start_interval, end_interval), label in zip(custom_intervalli, custom_label_intervalli):
+                    if end_interval < min_start_display:
+                        continue
+
+                    partite_con_gol = 0
+                    partite_con_almeno_2_gol = 0
+
+                    for _, row in df_to_analyze.iterrows():
+                        gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
+                        gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
+                        
+                        goals_in_interval = [g for g in gol_home + gol_away if max(start_interval, min_start_display) <= g <= end_interval]
+                        
+                        if len(goals_in_interval) > 0:
+                            partite_con_gol += 1
+                        if len(goals_in_interval) >= 2:
+                            partite_con_almeno_2_gol += 1
+                    
+                    perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+                    odd_min_con_gol = round(100 / perc_con_gol, 2) if perc_con_gol > 0 else "-"
+                    
+                    perc_almeno_2_gol = round((partite_con_almeno_2_gol / total_matches) * 100, 2) if total_matches > 0 else 0
+                    odd_min_almeno_2_gol = round(100 / perc_almeno_2_gol, 2) if perc_almeno_2_gol > 0 else "-"
+
+                    risultati.append([label, partite_con_gol, perc_con_gol, odd_min_con_gol, perc_almeno_2_gol, odd_min_almeno_2_gol])
+                
+                if not risultati:
+                    st.info(f"Nessun intervallo di tempo rilevante dopo il minuto {min_start_display} per l'analisi personalizzata.")
+                    return
+                
+                df_result = pd.DataFrame(risultati, columns=["Timeframe", "Partite con Gol", "Percentuale %", "Odd Minima", ">= 2 Gol %", "Odd Minima >= 2 Gol"])
+                df_result["Odd Minima"] = pd.to_numeric(df_result["Odd Minima"], errors='coerce').fillna('-').astype(str)
+                df_result["Odd Minima >= 2 Gol"] = pd.to_numeric(df_result["Odd Minima >= 2 Gol"], errors='coerce').fillna('-').astype(str)
+                styled_df = df_result.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %', '>= 2 Gol %']) 
+                st.dataframe(styled_df)
+
+            mostra_distribuzione_timeband_pattern(df_after_start_min, min_start_display=start_min_patt)
 
 
 # --- SEZIONE 7: Backtesting Strategie ---
