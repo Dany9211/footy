@@ -137,7 +137,7 @@ for col in all_numeric_cols_with_comma:
 # Conversione di altre colonne numeriche chiave che non dovrebbero avere virgole (es. Gol, Giornata)
 # Queste dovrebbero essere già gestite da pd.to_numeric con errors='coerce' se non sono già numeri
 other_int_cols = ["Gol_Home_FT", "Gol_Away_FT", "Gol_Home_HT", "Gol_Away_HT", 
-                  "Home_Pos_Tot", "Away_Pos_Tot", "Home_Pos_H", "Away_Pos_A", "Giornata", "BTTS_SI"]
+                    "Home_Pos_Tot", "Away_Pos_Tot", "Home_Pos_H", "Away_Pos_A", "Giornata", "BTTS_SI"]
 
 for col in other_int_cols:
     if col in df.columns:
@@ -2052,17 +2052,31 @@ all_teams = sorted(list(set(df['Home_Team'].dropna().unique()) | set(df['Away_Te
 h2h_home_team = st.selectbox("Seleziona Squadra 1", ["Seleziona..."] + all_teams)
 h2h_away_team = st.selectbox("Seleziona Squadra 2", ["Seleziona..."] + all_teams)
 
+# Aggiungi filtri per le quote anche per l'H2H
 if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
+    st.markdown("---")
+    st.subheader("Filtri Quote H2H")
+    col_h2h_quote1, col_h2h_quote2 = st.columns(2)
+    with col_h2h_quote1:
+        odd_home_range_h2h = st.slider(f"Range Odd Home", min_value=1.0, max_value=20.0, value=(1.0, 20.0), step=0.1, key="odd_home_h2h")
+    with col_h2h_quote2:
+        odd_away_range_h2h = st.slider(f"Range Odd Away", min_value=1.0, max_value=20.0, value=(1.0, 20.0), step=0.1, key="odd_away_h2h")
+    st.markdown("---")
+
     if h2h_home_team == h2h_away_team:
         st.warning("Seleziona due squadre diverse per l'analisi H2H.")
     else:
         # Filtra il DataFrame per trovare tutti i match tra le due squadre selezionate
-        # NOTA: I filtri per le quote della sidebar non vengono applicati qui per avere il dataset H2h completo
         h2h_df = df[((df['Home_Team'] == h2h_home_team) & (df['Away_Team'] == h2h_away_team)) |
                     ((df['Home_Team'] == h2h_away_team) & (df['Away_Team'] == h2h_home_team))]
         
+        # Applica i filtri per le quote H2H
+        if 'Odd_Home' in h2h_df.columns and 'Odd__Away' in h2h_df.columns:
+            h2h_df = h2h_df[(h2h_df['Odd_Home'] >= odd_home_range_h2h[0]) & (h2h_df['Odd_Home'] <= odd_home_range_h2h[1])]
+            h2h_df = h2h_df[(h2h_df['Odd__Away'] >= odd_away_range_h2h[0]) & (h2h_df['Odd__Away'] <= odd_away_range_h2h[1])]
+        
         if h2h_df.empty:
-            st.warning(f"Nessuna partita trovata tra {h2h_home_team} e {h2h_away_team}.")
+            st.warning(f"Nessuna partita trovata tra {h2h_home_team} e {h2h_away_team} con i filtri selezionati.")
         else:
             st.write(f"Analisi basata su **{len(h2h_df)}** scontri diretti tra {h2h_home_team} e {h2h_away_team}.")
 
@@ -2212,8 +2226,143 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
                 st.warning("Nessuna rimonta trovata nel dataset filtrato.")
 
 
-# --- SEZIONE 6: Backtesting Strategie ---
-st.subheader("6. Backtesting Strategie")
+# --- SEZIONE 6: Analisi Gol-Based ---
+st.subheader("6. Analisi Pattern Gol")
+st.write("Analizza le partite in base a specifici pattern di gol.")
+
+# Nuovi intervalli di tempo per questa sezione
+goal_pattern_time_intervals = {
+    "0-5": (0, 5), "0-10": (0, 10), "11-20": (11, 20), "21-30": (21, 30),
+    "31-39": (31, 39), "40-45": (40, 45), "46-55": (46, 55), "56-65": (56, 65),
+    "66-75": (66, 75), "75-80": (75, 80), "75-90": (75, 90), "80-90": (80, 90),
+    "85-90": (85, 90)
+}
+time_interval_options = ["Nessun Filtro"] + list(goal_pattern_time_intervals.keys())
+
+# Interfaccia per il primo gol
+st.markdown("### Primo Gol (opzionale)")
+col1_patt, col2_patt = st.columns(2)
+with col1_patt:
+    first_goal_result = st.selectbox("Risultato dopo il primo gol", ["Nessun Filtro", "1-0", "0-1"], key="first_goal_res")
+with col2_patt:
+    first_goal_time = st.selectbox("Intervallo di tempo primo gol", time_interval_options, key="first_goal_time")
+
+# Interfaccia per il secondo gol (opzionale e dipendente dal primo)
+if first_goal_result != "Nessun Filtro":
+    st.markdown("### Secondo Gol (opzionale)")
+    col3_patt, col4_patt = st.columns(2)
+    with col3_patt:
+        second_goal_result = st.selectbox("Risultato dopo il secondo gol", ["Nessun Filtro", "2-0", "1-1", "0-2"], key="second_goal_res")
+    with col4_patt:
+        second_goal_time = st.selectbox("Intervallo di tempo secondo gol", time_interval_options, key="second_goal_time")
+else:
+    second_goal_result = "Nessun Filtro"
+    second_goal_time = "Nessun Filtro"
+
+if st.button("Avvia Analisi Pattern Gol"):
+    df_pattern = df.copy() # L'analisi pattern non usa i filtri della sidebar
+
+    # Filtro per il primo gol
+    if first_goal_result != "Nessun Filtro":
+        # Filtra per risultato del primo gol
+        first_home_score, first_away_score = map(int, first_goal_result.split('-'))
+        
+        # Filtra per intervallo di tempo del primo gol
+        if first_goal_time != "Nessun Filtro":
+            min_first, max_first = goal_pattern_time_intervals[first_goal_time]
+            
+            def check_first_goal(row):
+                gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
+                gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
+                all_goals = []
+                if gol_home: all_goals.extend([(t, 'home') for t in gol_home])
+                if gol_away: all_goals.extend([(t, 'away') for t in gol_away])
+                all_goals.sort()
+                
+                if not all_goals:
+                    return False
+                
+                first_scorer_minute = all_goals[0][0]
+                first_scorer_team = all_goals[0][1]
+                
+                home_goals = sum(1 for g in all_goals if g[1] == 'home' and g[0] <= first_scorer_minute)
+                away_goals = sum(1 for g in all_goals if g[1] == 'away' and g[0] <= first_scorer_minute)
+
+                return (home_goals == first_home_score and away_goals == first_away_score and
+                        min_first <= first_scorer_minute <= max_first)
+            
+            df_pattern = df_pattern[df_pattern.apply(check_first_goal, axis=1)]
+
+    # Filtro per il secondo gol (se il primo gol è stato selezionato)
+    if first_goal_result != "Nessun Filtro" and second_goal_result != "Nessun Filtro":
+        second_home_score, second_away_score = map(int, second_goal_result.split('-'))
+        
+        if second_goal_time != "Nessun Filtro":
+            min_second, max_second = goal_pattern_time_intervals[second_goal_time]
+
+            def check_second_goal(row):
+                gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
+                gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
+                all_goals = []
+                if gol_home: all_goals.extend([(t, 'home') for t in gol_home])
+                if gol_away: all_goals.extend([(t, 'away') for t in gol_away])
+                all_goals.sort()
+
+                if len(all_goals) < 2:
+                    return False
+
+                second_scorer_minute = all_goals[1][0]
+                
+                home_goals = sum(1 for g in all_goals if g[1] == 'home' and g[0] <= second_scorer_minute)
+                away_goals = sum(1 for g in all_goals if g[1] == 'away' and g[0] <= second_scorer_minute)
+                
+                return (home_goals == second_home_score and away_goals == second_away_score and
+                        min_second <= second_scorer_minute <= max_second)
+
+            df_pattern = df_pattern[df_pattern.apply(check_second_goal, axis=1)]
+
+    # Mostra i risultati
+    st.markdown("---")
+    if df_pattern.empty:
+        st.warning("Nessuna partita trovata con il pattern di gol selezionato.")
+    else:
+        st.write(f"Analisi basata su **{len(df_pattern)}** partite con il pattern di gol selezionato.")
+
+        # Media Gol
+        avg_ft_goals = (df_pattern["Gol_Home_FT"] + df_pattern["Gol_Away_FT"]).mean()
+        st.write(f"**Media gol finale:** {avg_ft_goals:.2f}")
+
+        # Risultati Esatti FT
+        mostra_risultati_esatti(df_pattern, "risultato_ft", f"Risultati Finali ({len(df_pattern)})")
+
+        # Winrate FT
+        st.subheader(f"WinRate Finale ({len(df_pattern)})")
+        styled_df_ft = calcola_winrate(df_pattern, "risultato_ft").style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+        st.dataframe(styled_df_ft)
+
+        # Over Goals FT
+        st.subheader(f"Over Goals FT ({len(df_pattern)})")
+        over_ft_data = []
+        df_pattern["tot_goals_ft"] = df_pattern["Gol_Home_FT"] + df_pattern["Gol_Away_FT"]
+        for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
+            count = (df_pattern["tot_goals_ft"] > t).sum()
+            perc = round((count / len(df_pattern)) * 100, 2)
+            odd_min = round(100 / perc, 2) if perc > 0 else "-"
+            over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
+        df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+        styled_over_ft = df_over_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+        st.dataframe(styled_over_ft)
+        
+        # Prossimo Gol
+        st.subheader(f"Next Goal dopo l'ultimo gol filtrato ({len(df_pattern)})")
+        last_filtered_minute = max(goal_pattern_time_intervals.get(first_goal_time, (0,0))[1],
+                                   goal_pattern_time_intervals.get(second_goal_time, (0,0))[1])
+        styled_df = calcola_next_goal(df_pattern, last_filtered_minute + 1, 90).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+        st.dataframe(styled_df)
+
+
+# --- SEZIONE 7: Backtesting Strategie ---
+st.subheader("7. Backtesting Strategie")
 st.write("Testa una strategia di scommesse sui dati filtrati.")
 
 # Aggiungi un expander per contenere la logica di backtesting
