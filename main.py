@@ -1220,7 +1220,7 @@ def mostra_distribuzione_timeband_custom(df_to_analyze, min_start_display=0):
 
             gol_fatti_home += len(goals_in_interval_home)
             gol_subiti_home += len(goals_in_interval_away)
-            gol_fatti_away += len(goals_in_interval_away)
+            gol_fatti_away += len(goals_in-interval_away)
             gol_subiti_away += len(goals_in_interval_home)
             
         perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
@@ -2455,6 +2455,15 @@ if st.button("Avvia Analisi Pattern Gol"):
             st.subheader(f"BTTS HT ({len(df_after_start_min)})")
             df_btts_ht = calcola_btts_ht(df_after_start_min)
             styled_df = df_btts_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_df)
+            # Calcolo e visualizzazione BTTS FT
+            st.subheader(f"BTTS FT ({len(df_after_start_min)})")
+            df_btts_ft_dynamic = calcola_btts_dinamico(df_after_start_min, start_min_patt, risultato_attuale_patt)
+            styled_df = df_btts_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_df)
+            # Calcolo e visualizzazione To Score
+            st.subheader(f"To Score ({len(df_after_start_min)})")
+            styled_df = calcola_to_score(df_after_start_min).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
             st.dataframe(styled_df)
         
         # Risultato finale dopo il minuto di partenza
