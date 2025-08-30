@@ -1663,6 +1663,8 @@ if not filtered_df.empty:
         df_winrate_ht = calcola_winrate(filtered_df, "risultato_ht")
         styled_df_ht = df_winrate_ht.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
         st.dataframe(styled_df_ht)
+
+        # Over Goals HT
         st.subheader(f"Over Goals HT ({len(filtered_df)})")
         over_ht_data = []
         df_prematch_ht = filtered_df.copy()
@@ -1675,6 +1677,19 @@ if not filtered_df.empty:
         df_over_ht = pd.DataFrame(over_ht_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
         styled_over_ht = df_over_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_over_ht)
+
+        # Under Goals HT
+        st.subheader(f"Under Goals HT ({len(filtered_df)})")
+        under_ht_data = []
+        for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
+            count_under = (df_prematch_ht["tot_goals_ht"] < t+1).sum()
+            perc_under = round((count_under / len(df_prematch_ht)) * 100, 2)
+            odd_min_under = round(100 / perc_under, 2) if perc_under > 0 else "-"
+            under_ht_data.append([f"Under {t+0.5} HT", count_under, perc_under, odd_min_under])
+        df_under_ht = pd.DataFrame(under_ht_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+        styled_under_ht = df_under_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+        st.dataframe(styled_under_ht)
+        
         st.subheader(f"BTTS HT ({len(filtered_df)})")
         df_btts_ht = calcola_btts_ht(filtered_df)
         styled_df = df_btts_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
@@ -1805,7 +1820,7 @@ if not filtered_df.empty:
         styled_df_ft = df_winrate_ft.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
         st.dataframe(styled_df_ft)
         
-        # Over/Under Goals FT
+        # Over Goals FT
         st.subheader(f"Over Goals FT ({len(filtered_df)})")
         over_ft_data = []
         df_prematch_ft = filtered_df.copy()
@@ -1819,6 +1834,7 @@ if not filtered_df.empty:
         styled_over_ft = df_over_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_over_ft)
         
+        # Under Goals FT
         st.subheader(f"Under Goals FT ({len(filtered_df)})")
         under_ft_data = []
         for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
@@ -1961,35 +1977,57 @@ with st.expander("Mostra Analisi Dinamica (Minuto/Risultato)"):
             styled_df_ft = df_winrate_ft_dynamic.style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
             st.dataframe(styled_df_ft)
             
-            # Over Goals HT e FT
-            col1, col2 = st.columns(2)
+            # Over Goals HT
+            st.subheader(f"Over Goals HT (Dinamica) ({len(df_target)})")
+            over_ht_data_dynamic = []
             df_target_goals["tot_goals_ht"] = df_target_goals["Gol_Home_HT"] + df_target_goals["Gol_Away_HT"]
+            for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
+                count = (df_target_goals["tot_goals_ht"] > t).sum()
+                perc = round((count / len(df_target_goals)) * 100, 2)
+                odd_min = round(100 / perc, 2) if perc > 0 else "-"
+                over_ht_data_dynamic.append([f"Over {t} HT", count, perc, odd_min])
+            df_over_ht_dynamic = pd.DataFrame(over_ht_data_dynamic, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+            styled_over_ht_dynamic = df_over_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_over_ht_dynamic)
+
+            # Under Goals HT
+            st.subheader(f"Under Goals HT (Dinamica) ({len(df_target)})")
+            under_ht_data_dynamic = []
+            df_target_goals["tot_goals_ht"] = df_target_goals["Gol_Home_HT"] + df_target_goals["Gol_Away_HT"]
+            for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
+                count_under = (df_target_goals["tot_goals_ht"] < t+1).sum()
+                perc_under = round((count_under / len(df_target_goals)) * 100, 2)
+                odd_min_under = round(100 / perc_under, 2) if perc_under > 0 else "-"
+                under_ht_data_dynamic.append([f"Under {t+0.5} HT", count_under, perc_under, odd_min_under])
+            df_under_ht_dynamic = pd.DataFrame(under_ht_data_dynamic, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+            styled_under_ht_dynamic = df_under_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_under_ht_dynamic)
+            
+            # Over Goals FT
+            st.subheader(f"Over Goals FT (Dinamica) ({len(df_target)})")
+            over_ft_data = []
             df_target_goals["tot_goals_ft"] = df_target_goals["Gol_Home_FT"] + df_target_goals["Gol_Away_FT"]
+            for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
+                count = (df_target_goals["tot_goals_ft"] > t).sum()
+                perc = round((count / len(df_target_goals)) * 100, 2)
+                odd_min = round(100 / perc, 2) if perc > 0 else "-"
+                over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
+            df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+            styled_over_ft = df_over_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_over_ft)
             
-            with col1:
-                st.subheader(f"Over Goals HT (Dinamica) ({len(df_target)})")
-                over_ht_data_dynamic = []
-                for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
-                    count = (df_target_goals["tot_goals_ht"] > t).sum()
-                    perc = round((count / len(df_target_goals)) * 100, 2)
-                    odd_min = round(100 / perc, 2) if perc > 0 else "-"
-                    over_ht_data_dynamic.append([f"Over {t} HT", count, perc, odd_min])
-                df_over_ht_dynamic = pd.DataFrame(over_ht_data_dynamic, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
-                styled_over_ht_dynamic = df_over_ht_dynamic.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-                st.dataframe(styled_over_ht_dynamic)
-            
-            with col2:
-                st.subheader(f"Over Goals FT (Dinamica) ({len(df_target)})")
-                over_ft_data = []
-                for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
-                    count = (df_target_goals["tot_goals_ft"] > t).sum()
-                    perc = round((count / len(df_target_goals)) * 100, 2)
-                    odd_min = round(100 / perc, 2) if perc > 0 else "-"
-                    over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
-                df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
-                styled_over_ft = df_over_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-                st.dataframe(styled_over_ft)
-            
+            # Under Goals FT
+            st.subheader(f"Under Goals FT (Dinamica) ({len(df_target)})")
+            under_ft_data = []
+            for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
+                count_under = (df_target_goals["tot_goals_ft"] < t+1).sum()
+                perc_under = round((count_under / len(df_target_goals)) * 100, 2)
+                odd_min_under = round(100 / perc_under, 2) if perc_under > 0 else "-"
+                under_ft_data.append([f"Under {t+0.5} FT", count_under, perc_under, odd_min_under])
+            df_under_ft = pd.DataFrame(under_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+            styled_under_ft = df_under_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_under_ft)
+
             # BTTS
             st.subheader(f"BTTS (Dinamica) ({len(df_target)})")
             col1, col2 = st.columns(2)
@@ -2467,22 +2505,29 @@ if st.button("Avvia Analisi Pattern Gol"):
             st.dataframe(styled_df_ht)
             
             # Over e Under HT
-            st.subheader(f"Over/Under Goals HT ({len(df_after_start_min)})")
-            over_under_ht_data = []
+            st.subheader(f"Over Goals HT ({len(df_after_start_min)})")
+            over_ht_data = []
             df_temp_ht = df_after_start_min.copy()
             df_temp_ht["tot_goals_ht"] = df_temp_ht["Gol_Home_HT"] + df_temp_ht["Gol_Away_HT"]
             for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
                 count_over = (df_temp_ht["tot_goals_ht"] > t).sum()
-                count_under = (df_temp_ht["tot_goals_ht"] < t+1).sum()
                 perc_over = round((count_over / len(df_temp_ht)) * 100, 2)
-                perc_under = round((count_under / len(df_temp_ht)) * 100, 2)
                 odd_min_over = round(100 / perc_over, 2) if perc_over > 0 else "-"
+                over_ht_data.append([f"Over {t} HT", count_over, perc_over, odd_min_over])
+            df_over_ht = pd.DataFrame(over_ht_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+            styled_over_ht = df_over_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_over_ht)
+            
+            st.subheader(f"Under Goals HT ({len(df_after_start_min)})")
+            under_ht_data = []
+            for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
+                count_under = (df_temp_ht["tot_goals_ht"] < t+1).sum()
+                perc_under = round((count_under / len(df_temp_ht)) * 100, 2)
                 odd_min_under = round(100 / perc_under, 2) if perc_under > 0 else "-"
-                over_under_ht_data.append([f"Over {t} HT", count_over, perc_over, odd_min_over])
-                over_under_ht_data.append([f"Under {t+0.5} HT", count_under, perc_under, odd_min_under])
-            df_over_under_ht = pd.DataFrame(over_under_ht_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
-            styled_over_under_ht = df_over_under_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
-            st.dataframe(styled_over_under_ht)
+                under_ht_data.append([f"Under {t+0.5} HT", count_under, perc_under, odd_min_under])
+            df_under_ht = pd.DataFrame(under_ht_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
+            styled_under_ht = df_under_ht.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+            st.dataframe(styled_under_ht)
 
             st.subheader(f"BTTS HT ({len(df_after_start_min)})")
             df_btts_ht = calcola_btts_ht(df_after_start_min)
