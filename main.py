@@ -2616,7 +2616,7 @@ with st.expander("Configura e avvia il Backtest"):
                     continue
 
             investimento_totale = numero_scommesse * stake
-            roi = (profit_loss / investimento_totale) * 100 if investimento_scommesse > 0 else 0
+            roi = (profit_loss / investimento_totale) * 100 if investimento_totale > 0 else 0
             win_rate = (vincite / numero_scommesse) * 100 if numero_scommesse > 0 else 0
             odd_minima = 100 / win_rate if win_rate > 0 else 0
             
