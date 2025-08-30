@@ -1220,7 +1220,7 @@ def mostra_distribuzione_timeband_custom(df_to_analyze, min_start_display=0):
 
             gol_fatti_home += len(goals_in_interval_home)
             gol_subiti_home += len(goals_in_interval_away)
-            gol_fatti_away += len(goals_in-interval_away)
+            gol_fatti_away += len(goals_in_interval_away)
             gol_subiti_away += len(goals_in_interval_home)
             
         perc_con_gol = round((partite_con_gol / total_matches) * 100, 2) if total_matches > 0 else 0
@@ -1373,7 +1373,7 @@ def calcola_to_score(df_to_analyze):
     home_to_score_count = (df_to_score["Gol_Home_FT"] > 0).sum()
     away_to_score_count = (df_to_score["Gol_Away_FT"] > 0).sum()
     
-    total_matches = len(df_to_score)
+    total_matches = len(df_to_analyze)
     
     data = [
         ["Home Team to Score", home_to_score_count, round((home_to_score_count / total_matches) * 100, 2) if total_matches > 0 else 0],
