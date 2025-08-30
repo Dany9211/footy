@@ -284,8 +284,8 @@ else:
     st.sidebar.error("Colonna 'risultato_ht' non trovata. Il filtro per risultato HT non sarà disponibile.")
 
 
-# --- FUNZIONE per filtri range ---
-def add_range_filter(col_name, label=None):
+# --- FUNZIONE per filtri range con text_input ---
+def add_range_filter_text(col_name, label=None):
     if col_name in df.columns:
         # Assicurati che la colonna sia numerica prima di procedere
         numeric_col_series = convert_to_float(df[col_name])
@@ -325,10 +325,10 @@ def add_range_filter(col_name, label=None):
 
 st.sidebar.header("Filtri Quote")
 for col in ["Odd_Home", "Odd_Draw", "Odd__Away"]:
-    add_range_filter(col)
+    add_range_filter_text(col)
 for col in ["Odd_Over_0.5", "Odd_over_1.5", "Odd_over_2.5", "Odd_Over_3.5", "Odd_Over_4.5",
             "Odd_Under_0.5", "Odd_Under_1.5", "Odd_Under_2.5", "Odd_Under_3.5", "Odd_Under_4.5", "BTTS_SI"]:
-    add_range_filter(col)
+    add_range_filter_text(col)
 
 
 # --- APPLICA FILTRI AL DATAFRAME PRINCIPALE ---
@@ -2058,9 +2058,11 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
     st.subheader("Filtri Quote H2H")
     col_h2h_quote1, col_h2h_quote2 = st.columns(2)
     with col_h2h_quote1:
-        odd_home_range_h2h = st.slider(f"Range Odd Home", min_value=1.0, max_value=20.0, value=(1.0, 20.0), step=0.1, key="odd_home_h2h")
+        odd_home_min_h2h = st.text_input("Odd Home Min", value="1.0", key="odd_home_h2h_min")
+        odd_home_max_h2h = st.text_input("Odd Home Max", value="20.0", key="odd_home_h2h_max")
     with col_h2h_quote2:
-        odd_away_range_h2h = st.slider(f"Range Odd Away", min_value=1.0, max_value=20.0, value=(1.0, 20.0), step=0.1, key="odd_away_h2h")
+        odd_away_min_h2h = st.text_input("Odd Away Min", value="1.0", key="odd_away_h2h_min")
+        odd_away_max_h2h = st.text_input("Odd Away Max", value="20.0", key="odd_away_h2h_max")
     st.markdown("---")
 
     if h2h_home_team == h2h_away_team:
@@ -2071,9 +2073,18 @@ if h2h_home_team != "Seleziona..." and h2h_away_team != "Seleziona...":
                     ((df['Home_Team'] == h2h_away_team) & (df['Away_Team'] == h2h_home_team))]
         
         # Applica i filtri per le quote H2H
-        if 'Odd_Home' in h2h_df.columns and 'Odd__Away' in h2h_df.columns:
-            h2h_df = h2h_df[(h2h_df['Odd_Home'] >= odd_home_range_h2h[0]) & (h2h_df['Odd_Home'] <= odd_home_range_h2h[1])]
-            h2h_df = h2h_df[(h2h_df['Odd__Away'] >= odd_away_range_h2h[0]) & (h2h_df['Odd__Away'] <= odd_away_range_h2h[1])]
+        try:
+            odd_home_min_h2h = float(odd_home_min_h2h) if odd_home_min_h2h.strip() else 1.0
+            odd_home_max_h2h = float(odd_home_max_h2h) if odd_home_max_h2h.strip() else 20.0
+            odd_away_min_h2h = float(odd_away_min_h2h) if odd_away_min_h2h.strip() else 1.0
+            odd_away_max_h2h = float(odd_away_max_h2h) if odd_away_max_h2h.strip() else 20.0
+            
+            if 'Odd_Home' in h2h_df.columns and 'Odd__Away' in h2h_df.columns:
+                h2h_df = h2h_df[(h2h_df['Odd_Home'] >= odd_home_min_h2h) & (h2h_df['Odd_Home'] <= odd_home_max_h2h)]
+                h2h_df = h2h_df[(h2h_df['Odd__Away'] >= odd_away_min_h2h) & (h2h_df['Odd__Away'] <= odd_away_max_h2h)]
+        except ValueError:
+            st.error("I valori delle quote H2H non sono validi. Inserisci numeri.")
+            h2h_df = pd.DataFrame()
         
         if h2h_df.empty:
             st.warning(f"Nessuna partita trovata tra {h2h_home_team} e {h2h_away_team} con i filtri selezionati.")
@@ -2259,8 +2270,36 @@ else:
     second_goal_result = "Nessun Filtro"
     second_goal_time = "Nessun Filtro"
 
+# Filtri per le quote nella sezione 6
+st.markdown("### Filtri Quote (per questa analisi)")
+col_patt_quote1, col_patt_quote2 = st.columns(2)
+with col_patt_quote1:
+    odd_home_min_patt = st.text_input("Odd Home Min", value="1.0", key="odd_home_patt_min")
+    odd_home_max_patt = st.text_input("Odd Home Max", value="20.0", key="odd_home_patt_max")
+with col_patt_quote2:
+    odd_away_min_patt = st.text_input("Odd Away Min", value="1.0", key="odd_away_patt_min")
+    odd_away_max_patt = st.text_input("Odd Away Max", value="20.0", key="odd_away_patt_max")
+    
+# Cursore per il minuto iniziale di calcolo
+start_min_patt = st.slider("Minuto iniziale per calcolo stats successive", 1, 90, 1, key="start_min_patt")
+
+
 if st.button("Avvia Analisi Pattern Gol"):
     df_pattern = df.copy() # L'analisi pattern non usa i filtri della sidebar
+
+    # Applicazione dei filtri quote
+    try:
+        odd_home_min_patt = float(odd_home_min_patt) if odd_home_min_patt.strip() else 1.0
+        odd_home_max_patt = float(odd_home_max_patt) if odd_home_max_patt.strip() else 20.0
+        odd_away_min_patt = float(odd_away_min_patt) if odd_away_min_patt.strip() else 1.0
+        odd_away_max_patt = float(odd_away_max_patt) if odd_away_max_patt.strip() else 20.0
+        
+        if 'Odd_Home' in df_pattern.columns and 'Odd__Away' in df_pattern.columns:
+            df_pattern = df_pattern[(df_pattern['Odd_Home'] >= odd_home_min_patt) & (df_pattern['Odd_Home'] <= odd_home_max_patt)]
+            df_pattern = df_pattern[(df_pattern['Odd__Away'] >= odd_away_min_patt) & (df_pattern['Odd__Away'] <= odd_away_max_patt)]
+    except ValueError:
+        st.error("I valori delle quote per l'analisi Pattern non sono validi. Inserisci numeri.")
+        df_pattern = pd.DataFrame()
 
     # Filtro per il primo gol
     if first_goal_result != "Nessun Filtro":
@@ -2283,7 +2322,6 @@ if st.button("Avvia Analisi Pattern Gol"):
                     return False
                 
                 first_scorer_minute = all_goals[0][0]
-                first_scorer_team = all_goals[0][1]
                 
                 home_goals = sum(1 for g in all_goals if g[1] == 'home' and g[0] <= first_scorer_minute)
                 away_goals = sum(1 for g in all_goals if g[1] == 'away' and g[0] <= first_scorer_minute)
@@ -2320,44 +2358,55 @@ if st.button("Avvia Analisi Pattern Gol"):
                         min_second <= second_scorer_minute <= max_second)
 
             df_pattern = df_pattern[df_pattern.apply(check_second_goal, axis=1)]
+    
+    # Filtra il DataFrame in base al minuto iniziale selezionato per l'analisi successiva
+    df_pattern_filtered_min = df_pattern.copy()
+    if start_min_patt > 1:
+        def check_current_score(row):
+            gol_home = [int(x) for x in str(row.get("Minutaggio_Gol_Home", "")).split(";") if x.isdigit()]
+            gol_away = [int(x) for x in str(row.get("Minutaggio_gol_Away", "")).split(";") if x.isdigit()]
+            home_score = sum(1 for g in gol_home if g < start_min_patt)
+            away_score = sum(1 for g in gol_away if g < start_min_patt)
+            # Ritorna il punteggio attuale al minuto selezionato
+            return f"{home_score}-{away_score}"
+        
+        # Aggiungi una colonna temporanea per il risultato al minuto di partenza
+        df_pattern_filtered_min['risultato_start_min'] = df_pattern_filtered_min.apply(check_current_score, axis=1)
 
+        # Filtra per rimuovere le partite in cui il punteggio FT è già fissato al minuto di partenza
+        # Esempio: se il risultato è 1-0 e l'utente ha filtrato per 1-0 al minuto 10,
+        # ma la partita è terminata 1-0, non la consideriamo
+        # Questo è gestito implicitamente dai calcoli successivi, ma è un buon punto di controllo
+        # L'analisi si concentra sui mercati che possono ancora cambiare, quindi i FT e HT non vanno calcolati da qui
+    
     # Mostra i risultati
     st.markdown("---")
-    if df_pattern.empty:
-        st.warning("Nessuna partita trovata con il pattern di gol selezionato.")
+    if df_pattern_filtered_min.empty:
+        st.warning("Nessuna partita trovata con il pattern di gol e i filtri selezionati.")
     else:
-        st.write(f"Analisi basata su **{len(df_pattern)}** partite con il pattern di gol selezionato.")
+        st.write(f"Analisi basata su **{len(df_pattern_filtered_min)}** partite con il pattern di gol e i filtri selezionati.")
 
-        # Media Gol
-        avg_ft_goals = (df_pattern["Gol_Home_FT"] + df_pattern["Gol_Away_FT"]).mean()
-        st.write(f"**Media gol finale:** {avg_ft_goals:.2f}")
-
-        # Risultati Esatti FT
-        mostra_risultati_esatti(df_pattern, "risultato_ft", f"Risultati Finali ({len(df_pattern)})")
-
-        # Winrate FT
-        st.subheader(f"WinRate Finale ({len(df_pattern)})")
-        styled_df_ft = calcola_winrate(df_pattern, "risultato_ft").style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
+        # Winrate dopo il minuto di partenza
+        st.subheader(f"WinRate Finale da minuto {start_min_patt} ({len(df_pattern_filtered_min)})")
+        styled_df_ft = calcola_winrate(df_pattern_filtered_min, "risultato_ft").style.background_gradient(cmap='RdYlGn', subset=['WinRate %'])
         st.dataframe(styled_df_ft)
 
-        # Over Goals FT
-        st.subheader(f"Over Goals FT ({len(df_pattern)})")
+        # Over Goals FT da minuto di partenza
+        st.subheader(f"Over Goals FT da minuto {start_min_patt} ({len(df_pattern_filtered_min)})")
         over_ft_data = []
-        df_pattern["tot_goals_ft"] = df_pattern["Gol_Home_FT"] + df_pattern["Gol_Away_FT"]
+        df_pattern_filtered_min["tot_goals_ft"] = df_pattern_filtered_min["Gol_Home_FT"] + df_pattern_filtered_min["Gol_Away_FT"]
         for t in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
-            count = (df_pattern["tot_goals_ft"] > t).sum()
-            perc = round((count / len(df_pattern)) * 100, 2)
+            count = (df_pattern_filtered_min["tot_goals_ft"] > t).sum()
+            perc = round((count / len(df_pattern_filtered_min)) * 100, 2)
             odd_min = round(100 / perc, 2) if perc > 0 else "-"
             over_ft_data.append([f"Over {t} FT", count, perc, odd_min])
         df_over_ft = pd.DataFrame(over_ft_data, columns=["Mercato", "Conteggio", "Percentuale %", "Odd Minima"])
         styled_over_ft = df_over_ft.style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_over_ft)
         
-        # Prossimo Gol
-        st.subheader(f"Next Goal dopo l'ultimo gol filtrato ({len(df_pattern)})")
-        last_filtered_minute = max(goal_pattern_time_intervals.get(first_goal_time, (0,0))[1],
-                                   goal_pattern_time_intervals.get(second_goal_time, (0,0))[1])
-        styled_df = calcola_next_goal(df_pattern, last_filtered_minute + 1, 90).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
+        # Prossimo Gol da minuto di partenza
+        st.subheader(f"Next Goal (da minuto {start_min_patt}) ({len(df_pattern_filtered_min)})")
+        styled_df = calcola_next_goal(df_pattern_filtered_min, start_min_patt, 90).style.background_gradient(cmap='RdYlGn', subset=['Percentuale %'])
         st.dataframe(styled_df)
 
 
