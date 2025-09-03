@@ -4,7 +4,7 @@ import numpy as np
 import datetime # Importazione necessaria per lavorare con le date
 
 st.set_page_config(page_title="Analisi Campionati Next Gol e stats live", layout="wide")
-st.title("Analisi Tabella 23agosto2023")
+st.title("Analisi DB Campionato")
 
 # --- Funzione per il caricamento del file CSV ---
 @st.cache_data
@@ -2752,6 +2752,7 @@ else:
         # Ordina per ROI % discendente e poi per Profitto (€)
         df_bt = df_bt.sort_values(by=["ROI %", "Profitto (€)"], ascending=[False, False]).reset_index(drop=True)
         st.dataframe(df_bt, use_container_width=True)
+
 
 
 
