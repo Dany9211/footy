@@ -6,7 +6,8 @@ def pulisci_e_formatta_df(df):
     """
     Funzione per pulire e formattare un DataFrame di pandas.
     - Rimuove le righe duplicate.
-    - Estrae e riposiziona le colonne 'giorno', 'mese', 'anno' da 'date_GMT'.
+    - Gestisce la presenza di colonne duplicate prima di estrarre e riposizionare
+      le colonne 'giorno', 'mese', 'anno' da 'date_GMT'.
     - Ordina il DataFrame per 'timestamp' se la colonna esiste.
     """
     
@@ -17,9 +18,15 @@ def pulisci_e_formatta_df(df):
     
     st.write(f"✅ Rimosse **{duplicati_rimossi}** righe doppione.")
     
-    # 2. Estrazione e riposizionamento di Giorno, Mese, Anno
+    # 2. Gestione colonne duplicate e estrazione di Giorno, Mese, Anno
     if 'date_GMT' in df.columns:
         try:
+            # Controllo e rimozione delle colonne esistenti per evitare l'errore
+            for col in ['giorno', 'mese', 'anno']:
+                if col in df.columns:
+                    df.drop(columns=[col], inplace=True)
+                    st.warning(f"⚠️ Rilevata e rimossa la colonna '{col}' esistente per prevenire duplicati.")
+
             df['date_GMT'] = df['date_GMT'].astype(str).str.split(' - ').str[0]
             parts = df['date_GMT'].str.split(' ', expand=True)
             df['giorno'] = parts[1]
@@ -76,7 +83,7 @@ if uploaded_file is not None:
                 df = pd.read_csv(uploaded_file, sep=';', low_memory=False, on_bad_lines='skip')
                 if df.shape[1] == 1:
                     # Se non funziona, prova la virgola
-                    uploaded_file.seek(0) # Riporta il "puntatore" all'inizio del file
+                    uploaded_file.seek(0)
                     df = pd.read_csv(uploaded_file, sep=',', low_memory=False, on_bad_lines='skip')
             except UnicodeDecodeError:
                 # Prova la codifica Latin-1 se la prima fallisce
