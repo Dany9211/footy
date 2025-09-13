@@ -236,11 +236,13 @@ st.markdown("---")
 st.header("Risultati dell'Analisi")
 
 # Valida current_score
-try:
-    cur_h, cur_a = map(int, current_score.strip().split('-'))
-except Exception:
-    st.error("Formato del risultato attuale non valido. Usa il formato 'X-Y'.")
-    st.stop()
+cur_h, cur_a = 0, 0
+if current_score != "0-0":
+    try:
+        cur_h, cur_a = map(int, current_score.strip().split('-'))
+    except Exception:
+        st.error("Formato del risultato attuale non valido. Usa il formato 'X-Y'.")
+        st.stop()
 
 filtered_rows = []
 for idx, row in filtered_df.iterrows():
@@ -255,19 +257,13 @@ for idx, row in filtered_df.iterrows():
             first_ok = False
         else:
             first_min, first_side = ordered_goals_with_side(home_t, away_t)[0]
-            # mappa a banda "macro" per confronto con selezioni box
-            band = minute_to_band(first_min)
-            # mappa richieste personalizzate in macro-bands
-            req_band = first_goal_timebands
-            # Normalizza richieste "0-5/0-10/..." con controllo minuto
-            # Qui usiamo un controllo diretto sul valore
+            
             def in_req_band(m, label):
                 a, b = label.split('-')
                 return float(a) <= m <= float(b)
 
-            # Verifica banda richiesta
-            band_ok = in_req_band(first_min, req_band)
-            # Verifica lato che produce lo score voluto
+            band_ok = in_req_band(first_min, first_goal_timebands)
+            
             side_ok = (first_goal_score == '1-0' and first_side == 'home') or \
                       (first_goal_score == '0-1' and first_side == 'away')
             first_ok = band_ok and side_ok
@@ -288,7 +284,6 @@ for idx, row in filtered_df.iterrows():
                 return float(a) <= m <= float(b)
             band_ok = in_req_band(second_min, second_goal_timebands)
 
-            # Conta gol fino al secondo gol
             h_to_second = sum(1 for t in home_t if t <= second_min)
             a_to_second = sum(1 for t in away_t if t <= second_min)
             try:
@@ -307,7 +302,6 @@ for idx, row in filtered_df.iterrows():
     if not (h_before == cur_h and a_before == cur_a):
         continue
 
-    # Se siamo qui, la riga passa tutti i filtri
     filtered_rows.append(row)
 
 final_df = pd.DataFrame(filtered_rows)
@@ -349,7 +343,7 @@ if 'home_team_goal_count' in final_df.columns and 'away_team_goal_count' in fina
     }
     winrate_df = pd.DataFrame(winrate_data)
     st.subheader("Winrate FT")
-    st.dataframe(winrate_df)
+    st.dataframe(winrate_df.style.background_gradient(cmap='Greens', subset=['Valore (%)']))
 
 # Over FT
 if 'total_goal_count' not in final_df.columns and \
@@ -364,7 +358,7 @@ if 'total_goal_count' in final_df.columns:
 
     over_df = pd.DataFrame(over_results.items(), columns=['Statistica', 'Valore (%)'])
     st.subheader("Over FT")
-    st.dataframe(over_df)
+    st.dataframe(over_df.style.background_gradient(cmap='Blues', subset=['Valore (%)']))
 
 # Fasce orarie dei gol successivi (dal cutoff in poi)
 st.subheader("Fasce Orarie dei Gol Successivi")
@@ -374,9 +368,8 @@ time_bands = {
 time_band_matches = {k: set() for k in time_bands.keys()}
 
 for _, row in final_df.iterrows():
-    match_id = row.get('timestamp', _)
+    match_id = row.get('timestamp', str(row.name))
     all_t = row['all_parsed']
-    # Dal 46 in poi vogliamo includere anche i gol al 46.0 (>=), nel primo tempo usiamo >= min_start coerente
     for t in all_t:
         if t >= float(min_start):
             band = minute_to_band(t)
@@ -390,4 +383,4 @@ tb_df['Percentuale Partite (%)'] = [
     if total_matches_for_percentage > 0 else 0
     for band in tb_df['Fascia Oraria']
 ]
-st.dataframe(tb_df)
+st.dataframe(tb_df.style.background_gradient(cmap='YlOrRd', subset=['Percentuale Partite (%)']))
