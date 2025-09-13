@@ -169,6 +169,7 @@ if uploaded_file is not None:
     # Logic to filter based on goal events
     final_df = filtered_df.copy()
 
+    # Apply first goal filter
     if first_goal_timebands != 'Nessuno':
         min_start_fg, min_end_fg = map(int, first_goal_timebands.split('-'))
         
@@ -193,7 +194,8 @@ if uploaded_file is not None:
                     temp_df.append(row)
         
         final_df = pd.DataFrame(temp_df)
-
+    
+    # Apply second goal filter
     if has_second_goal and second_goal_timebands != 'Nessuno':
         min_start_sg, min_end_sg = map(int, second_goal_timebands.split('-'))
         home_sg_count, away_sg_count = map(int, second_goal_score.split('-'))
