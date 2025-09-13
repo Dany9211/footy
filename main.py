@@ -195,22 +195,27 @@ if uploaded_file is not None:
         home_wins = (final_df['home_team_goal_count'] > final_df['away_team_goal_count']).sum()
         draws = (final_df['home_team_goal_count'] == final_df['away_team_goal_count']).sum()
         away_wins = (final_df['home_team_goal_count'] < final_df['away_team_goal_count']).sum()
-
+        
+        winrate_data = {
+            'Statistica': ['Home Win', 'Draw', 'Away Win'],
+            'Valore (%)': [
+                round(home_wins / total_matches * 100, 2),
+                round(draws / total_matches * 100, 2),
+                round(away_wins / total_matches * 100, 2)
+            ]
+        }
+        winrate_df = pd.DataFrame(winrate_data)
         st.subheader("Winrate FT")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Home Win", f"{home_wins / total_matches * 100:.2f}%")
-        col2.metric("Draw", f"{draws / total_matches * 100:.2f}%")
-        col3.metric("Away Win", f"{away_wins / total_matches * 100:.2f}%")
+        st.dataframe(winrate_df.style.background_gradient(cmap='Greens', subset=['Valore (%)']))
 
-        st.subheader("Over FT")
         over_results = {}
         for threshold in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
             over_count = (final_df['total_goal_count'] > threshold).sum()
-            over_results[f"Over {threshold}"] = f"{over_count / total_matches * 100:.2f}%"
+            over_results[f"Over {threshold}"] = round(over_count / total_matches * 100, 2)
         
-        cols = st.columns(6)
-        for i, (key, value) in enumerate(over_results.items()):
-            cols[i].metric(key, value)
+        over_df = pd.DataFrame(over_results.items(), columns=['Statistica', 'Valore (%)'])
+        st.subheader("Over FT")
+        st.dataframe(over_df.style.background_gradient(cmap='Blues', subset=['Valore (%)']))
 
         st.subheader("Fasce Orarie dei Gol Successivi")
         all_goals_after_start = []
