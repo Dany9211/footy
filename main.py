@@ -147,6 +147,24 @@ if uploaded_file is not None:
     current_score = st.text_input("Risultato attuale (es. 1-0)", "0-0")
 
     st.markdown("---")
+    
+    # Display Filter Summary
+    st.subheader("Riepilogo Filtri Applicati")
+    summary = []
+    if selected_league != 'Tutti': summary.append(f"Campionato: **{selected_league}**")
+    if selected_home_team != 'Tutte': summary.append(f"Squadra di casa: **{selected_home_team}**")
+    if selected_away_team != 'Tutte': summary.append(f"Squadra in trasferta: **{selected_away_team}**")
+    if first_goal_timebands != 'Nessuno': summary.append(f"Primo gol ({first_goal_score}) nella fascia **{first_goal_timebands}**")
+    if has_second_goal and second_goal_timebands != 'Nessuno': summary.append(f"Secondo gol ({second_goal_score}) nella fascia **{second_goal_timebands}**")
+    if current_score != "0-0": summary.append(f"Risultato attuale al minuto **{min_start}** è **{current_score}**")
+    if not (min_home_odds == 1.0 and max_home_odds == 50.0): summary.append(f"Quota Home: **{min_home_odds} - {max_home_odds}**")
+    if not (min_away_odds == 1.0 and max_away_odds == 50.0): summary.append(f"Quota Away: **{min_away_odds} - {max_away_odds}**")
+    
+    if summary:
+        for item in summary: st.markdown(f"- {item}")
+    else:
+        st.info("Nessun filtro specifico applicato.")
+
 
     # Logic to filter based on goal events
     final_df = filtered_df.copy()
@@ -222,7 +240,7 @@ if uploaded_file is not None:
     st.header("Risultati dell'Analisi")
 
     if final_df.empty:
-        st.warning("Nessuna partita trovata che corrisponda ai criteri di ricerca.")
+        st.warning("Nessuna partita trovata che corrisponde ai criteri di ricerca.")
     else:
         st.write(f"Numero di partite trovate: **{len(final_df)}**")
         
