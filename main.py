@@ -335,7 +335,7 @@ if 'home_team_goal_count' in final_df.columns and 'away_team_goal_count' in fina
 
     winrate_data = {
         'Statistica': ['Home Win', 'Draw', 'Away Win'],
-        'Valore (%)': [
+        '%': [
             round(home_wins / total_matches * 100, 2),
             round(draws / total_matches * 100, 2),
             round(away_wins / total_matches * 100, 2)
@@ -343,7 +343,7 @@ if 'home_team_goal_count' in final_df.columns and 'away_team_goal_count' in fina
     }
     winrate_df = pd.DataFrame(winrate_data)
     st.subheader("Winrate FT")
-    st.dataframe(winrate_df.style.background_gradient(cmap='Greens', subset=['Valore (%)']))
+    st.dataframe(winrate_df.style.background_gradient(cmap='RdYlGn', subset=['%']))
 
 # Over FT
 if 'total_goal_count' not in final_df.columns and \
@@ -356,9 +356,9 @@ if 'total_goal_count' in final_df.columns:
         over_count = (final_df['total_goal_count'] > threshold).sum()
         over_results[f"Over {threshold}"] = round(over_count / total_matches * 100, 2)
 
-    over_df = pd.DataFrame(over_results.items(), columns=['Statistica', 'Valore (%)'])
+    over_df = pd.DataFrame(over_results.items(), columns=['Statistica', '%'])
     st.subheader("Over FT")
-    st.dataframe(over_df.style.background_gradient(cmap='Blues', subset=['Valore (%)']))
+    st.dataframe(over_df.style.background_gradient(cmap='RdYlGn', subset=['%']))
 
 # Fasce orarie dei gol successivi (dal cutoff in poi)
 st.subheader("Fasce Orarie dei Gol Successivi")
@@ -371,16 +371,29 @@ for _, row in final_df.iterrows():
     match_id = row.get('timestamp', str(row.name))
     all_t = row['all_parsed']
     for t in all_t:
-        if t >= float(min_start):
+        if t > float(min_start):
             band = minute_to_band(t)
             time_bands[band] += 1
             time_band_matches[band].add(match_id)
-
+            
 tb_df = pd.DataFrame(time_bands.items(), columns=['Fascia Oraria', 'Numero di Gol'])
-total_matches_for_percentage = len(final_df)
-tb_df['Percentuale Partite (%)'] = [
-    round(len(time_band_matches[band]) / total_matches_for_percentage * 100, 2)
-    if total_matches_for_percentage > 0 else 0
+
+time_band_matches = {
+    '1-15': set(), '16-30': set(), '31-45': set(), '45+': set(), '46-60': set(), '61-75': set(), '76-90': set(), '90+': set()
+}
+
+for _, row in final_df.iterrows():
+    match_id = row.get('timestamp', str(row.name))
+    all_t = row['all_parsed']
+    for t in all_t:
+        if t > float(min_start):
+            band = minute_to_band(t)
+            time_band_matches[band].add(match_id)
+
+tb_df['Numero di Partite'] = [len(time_band_matches[band]) for band in tb_df['Fascia Oraria']]
+tb_df['%'] = [
+    round(len(time_band_matches[band]) / total_matches * 100, 2) if total_matches > 0 else 0
     for band in tb_df['Fascia Oraria']
 ]
-st.dataframe(tb_df.style.background_gradient(cmap='YlOrRd', subset=['Percentuale Partite (%)']))
+
+st.dataframe(tb_df[['Fascia Oraria', 'Numero di Partite', '%']].style.background_gradient(cmap='RdYlGn', subset=['%']))
