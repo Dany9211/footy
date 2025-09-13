@@ -56,7 +56,14 @@ if uploaded_file is not None:
     all_columns = df.columns.tolist()
     st.sidebar.markdown("---")
     st.sidebar.header("Configurazione Colonne")
-    selected_league_col = st.sidebar.selectbox('Seleziona la colonna del campionato', all_columns)
+    
+    # Automatically select 'league' if it exists
+    league_col_index = all_columns.index('league') if 'league' in all_columns else 0
+    selected_league_col = st.sidebar.selectbox(
+        'Seleziona la colonna del campionato',
+        all_columns,
+        index=league_col_index
+    )
     
     # New odds column selectors in sidebar
     home_odds_col = st.sidebar.selectbox('Seleziona la colonna per le quote Home', all_columns)
@@ -93,16 +100,28 @@ if uploaded_file is not None:
 
     # New odds filters in the main section
     st.subheader("Filtri Quote")
-    min_home_odds = st.number_input('Quota minima Home', min_value=1.0, value=1.0, step=0.01)
-    max_home_odds = st.number_input('Quota massima Home', min_value=1.0, value=50.0, step=0.01)
-    min_away_odds = st.number_input('Quota minima Away', min_value=1.0, value=1.0, step=0.01)
-    max_away_odds = st.number_input('Quota massima Away', min_value=1.0, value=50.0, step=0.01)
+    try:
+        min_home_odds = st.number_input('Quota minima Home', min_value=1.0, value=1.0, step=0.01)
+        max_home_odds = st.number_input('Quota massima Home', min_value=1.0, value=50.0, step=0.01)
+        min_away_odds = st.number_input('Quota minima Away', min_value=1.0, value=1.0, step=0.01)
+        max_away_odds = st.number_input('Quota massima Away', min_value=1.0, value=50.0, step=0.01)
 
-    # Apply odds filters
-    filtered_df = filtered_df[
-        (filtered_df[home_odds_col] >= min_home_odds) & (filtered_df[home_odds_col] <= max_home_odds) &
-        (filtered_df[away_odds_col] >= min_away_odds) & (filtered_df[away_odds_col] <= max_away_odds)
-    ]
+        # Check for invalid ranges
+        if min_home_odds > max_home_odds:
+            st.error("La quota minima Home non può essere maggiore di quella massima.")
+        if min_away_odds > max_away_odds:
+            st.error("La quota minima Away non può essere maggiore di quella massima.")
+            
+        # Apply odds filters
+        filtered_df = filtered_df[
+            (filtered_df[home_odds_col] >= min_home_odds) & (filtered_df[home_odds_col] <= max_home_odds) &
+            (filtered_df[away_odds_col] >= min_away_odds) & (filtered_df[away_odds_col] <= max_away_odds)
+        ]
+    except KeyError:
+        st.warning("Assicurati di aver selezionato le colonne corrette per le quote nella barra laterale.")
+    except ValueError:
+        st.warning("Le colonne selezionate per le quote non contengono valori numerici validi. Prova a selezionare altre colonne.")
+
 
     st.subheader("Primo Gol")
     first_goal_score = st.radio("Risultato del Primo Gol", ['1-0', '0-1'])
