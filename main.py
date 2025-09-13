@@ -58,7 +58,7 @@ if uploaded_file is not None:
     st.sidebar.header("Configurazione Colonne")
     selected_league_col = st.sidebar.selectbox('Seleziona la colonna del campionato', all_columns)
     
-    # New odds column selectors
+    # New odds column selectors in sidebar
     home_odds_col = st.sidebar.selectbox('Seleziona la colonna per le quote Home', all_columns)
     away_odds_col = st.sidebar.selectbox('Seleziona la colonna per le quote Away', all_columns)
     
@@ -79,22 +79,6 @@ if uploaded_file is not None:
     away_teams = sorted(df['away_team_name'].unique())
     selected_away_team = st.sidebar.selectbox('Seleziona Squadra in Trasferta', ['Tutte'] + away_teams)
 
-    # New odds filters
-    st.sidebar.markdown("---")
-    st.sidebar.header("Filtri Quote")
-    min_home_odds, max_home_odds = st.sidebar.slider(
-        'Range quote Home',
-        min_value=float(df[home_odds_col].min()),
-        max_value=float(df[home_odds_col].max()),
-        value=(float(df[home_odds_col].min()), float(df[home_odds_col].max()))
-    )
-    min_away_odds, max_away_odds = st.sidebar.slider(
-        'Range quote Away',
-        min_value=float(df[away_odds_col].min()),
-        max_value=float(df[away_odds_col].max()),
-        value=(float(df[away_odds_col].min()), float(df[away_odds_col].max()))
-    )
-
     # Filter the dataframe
     filtered_df = df.copy()
     if selected_league != 'Tutti':
@@ -104,14 +88,21 @@ if uploaded_file is not None:
     if selected_away_team != 'Tutte':
         filtered_df = filtered_df[filtered_df['away_team_name'] == selected_away_team]
     
+    # Main Page Inputs
+    st.header("Impostazioni per l'Analisi Statistica")
+
+    # New odds filters in the main section
+    st.subheader("Filtri Quote")
+    min_home_odds = st.number_input('Quota minima Home', min_value=1.0, value=float(df[home_odds_col].min()), step=0.01)
+    max_home_odds = st.number_input('Quota massima Home', min_value=1.0, value=float(df[home_odds_col].max()), step=0.01)
+    min_away_odds = st.number_input('Quota minima Away', min_value=1.0, value=float(df[away_odds_col].min()), step=0.01)
+    max_away_odds = st.number_input('Quota massima Away', min_value=1.0, value=float(df[away_odds_col].max()), step=0.01)
+
     # Apply odds filters
     filtered_df = filtered_df[
         (filtered_df[home_odds_col] >= min_home_odds) & (filtered_df[home_odds_col] <= max_home_odds) &
         (filtered_df[away_odds_col] >= min_away_odds) & (filtered_df[away_odds_col] <= max_away_odds)
     ]
-
-    # Main Page Inputs
-    st.header("Impostazioni per l'Analisi Statistica")
 
     st.subheader("Primo Gol")
     first_goal_score = st.radio("Risultato del Primo Gol", ['1-0', '0-1'])
@@ -254,27 +245,49 @@ if uploaded_file is not None:
         time_bands = {
             '1-15': 0, '16-30': 0, '31-45': 0, '45+': 0, '46-60': 0, '61-75': 0, '76-90': 0, '90+': 0
         }
-
-        for goal_min in all_goals_after_start:
-            if 1 <= goal_min <= 15:
-                time_bands['1-15'] += 1
-            elif 16 <= goal_min <= 30:
-                time_bands['16-30'] += 1
-            elif 31 <= goal_min <= 45:
-                time_bands['31-45'] += 1
-            elif 45 < goal_min <= 45 + 5:
-                time_bands['45+'] += 1
-            elif 46 <= goal_min <= 60:
-                time_bands['46-60'] += 1
-            elif 61 <= goal_min <= 75:
-                time_bands['61-75'] += 1
-            elif 76 <= goal_min <= 90:
-                time_bands['76-90'] += 1
-            elif goal_min > 90:
-                time_bands['90+'] += 1
+        time_band_matches = {
+            '1-15': set(), '16-30': set(), '31-45': set(), '45+': set(), '46-60': set(), '61-75': set(), '76-90': set(), '90+': set()
+        }
+        
+        for _, row in final_df.iterrows():
+            match_id = row['timestamp']
+            all_timings = parse_goal_timings(row['home_team_goal_timings']) + parse_goal_timings(row['away_team_goal_timings'])
+            for goal_min in all_timings:
+                if goal_min > min_start:
+                    if 1 <= goal_min <= 15:
+                        time_bands['1-15'] += 1
+                        time_band_matches['1-15'].add(match_id)
+                    elif 16 <= goal_min <= 30:
+                        time_bands['16-30'] += 1
+                        time_band_matches['16-30'].add(match_id)
+                    elif 31 <= goal_min <= 45:
+                        time_bands['31-45'] += 1
+                        time_band_matches['31-45'].add(match_id)
+                    elif 45 < goal_min <= 45 + 5:
+                        time_bands['45+'] += 1
+                        time_band_matches['45+'].add(match_id)
+                    elif 46 <= goal_min <= 60:
+                        time_bands['46-60'] += 1
+                        time_band_matches['46-60'].add(match_id)
+                    elif 61 <= goal_min <= 75:
+                        time_bands['61-75'] += 1
+                        time_band_matches['61-75'].add(match_id)
+                    elif 76 <= goal_min <= 90:
+                        time_bands['76-90'] += 1
+                        time_band_matches['76-90'].add(match_id)
+                    elif goal_min > 90:
+                        time_bands['90+'] += 1
+                        time_band_matches['90+'].add(match_id)
         
         time_bands_df = pd.DataFrame(time_bands.items(), columns=['Fascia Oraria', 'Numero di Gol'])
-        st.dataframe(time_bands_df.style.background_gradient(cmap='Oranges', subset=['Numero di Gol']))
-
+        
+        total_matches_for_percentage = len(final_df)
+        time_bands_df['Percentuale Partite (%)'] = [
+            round(len(time_band_matches[band]) / total_matches_for_percentage * 100, 2)
+            if total_matches_for_percentage > 0 else 0
+            for band in time_bands_df['Fascia Oraria']
+        ]
+        
+        st.dataframe(time_bands_df.style.background_gradient(cmap='Oranges', subset=['Percentuale Partite (%)']))
 else:
     st.info("Per iniziare, carica un file CSV usando il pannello a sinistra. L'app configurerà automaticamente i filtri successivi.")
