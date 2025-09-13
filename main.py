@@ -24,15 +24,6 @@ def parse_goal_timings(timings_str):
                 continue
     return sorted(list(set(timings)))
 
-# Function to determine outcome
-def get_outcome(home_goals, away_goals):
-    if home_goals > away_goals:
-        return 'Home Win'
-    elif away_goals > home_goals:
-        return 'Away Win'
-    else:
-        return 'Draw'
-
 st.title("⚽ Analisi Statistica sui Gol")
 st.markdown("Usa i filtri a sinistra per affinare la tua analisi.")
 st.markdown("---")
@@ -52,22 +43,10 @@ if uploaded_file is not None:
     df = df.rename(columns={'Game Week': 'Game_Week'})
     df = df[df['status'] == 'complete'].copy()
 
-    # Dynamic column selection
-    all_columns = df.columns.tolist()
-    st.sidebar.markdown("---")
-    st.sidebar.header("Configurazione Colonne")
-    
-    # Automatically select 'league' if it exists
-    league_col_index = all_columns.index('league') if 'league' in all_columns else 0
-    selected_league_col = st.sidebar.selectbox(
-        'Seleziona la colonna del campionato',
-        all_columns,
-        index=league_col_index
-    )
-    
-    # New odds column selectors in sidebar
-    home_odds_col = st.sidebar.selectbox('Seleziona la colonna per le quote Home', all_columns)
-    away_odds_col = st.sidebar.selectbox('Seleziona la colonna per le quote Away', all_columns)
+    # Hardcoded column names based on user feedback
+    league_col = 'league'
+    home_odds_col = 'odds_ft_home_team_win'
+    away_odds_col = 'odds_ft_away_team_win'
     
     # Add a combined timings column
     df['all_goal_timings'] = df.apply(
@@ -77,19 +56,27 @@ if uploaded_file is not None:
 
     # Sidebar filters
     st.sidebar.header("Filtri Partita")
-    leagues = sorted(df[selected_league_col].unique())
-    selected_league = st.sidebar.selectbox('Seleziona Campionato', ['Tutti'] + leagues)
+    
+    leagues = ['Tutti']
+    if league_col in df.columns:
+        leagues.extend(sorted(df[league_col].unique()))
+    
+    selected_league = st.sidebar.selectbox('Seleziona Campionato', leagues)
         
-    home_teams = sorted(df['home_team_name'].unique())
-    selected_home_team = st.sidebar.selectbox('Seleziona Squadra di Casa', ['Tutte'] + home_teams)
+    home_teams = ['Tutte']
+    if 'home_team_name' in df.columns:
+        home_teams.extend(sorted(df['home_team_name'].unique()))
+    selected_home_team = st.sidebar.selectbox('Seleziona Squadra di Casa', home_teams)
 
-    away_teams = sorted(df['away_team_name'].unique())
-    selected_away_team = st.sidebar.selectbox('Seleziona Squadra in Trasferta', ['Tutte'] + away_teams)
+    away_teams = ['Tutte']
+    if 'away_team_name' in df.columns:
+        away_teams.extend(sorted(df['away_team_name'].unique()))
+    selected_away_team = st.sidebar.selectbox('Seleziona Squadra in Trasferta', away_teams)
 
     # Filter the dataframe
     filtered_df = df.copy()
     if selected_league != 'Tutti':
-        filtered_df = filtered_df[filtered_df[selected_league_col] == selected_league]
+        filtered_df = filtered_df[filtered_df[league_col] == selected_league]
     if selected_home_team != 'Tutte':
         filtered_df = filtered_df[filtered_df['home_team_name'] == selected_home_team]
     if selected_away_team != 'Tutte':
@@ -100,27 +87,24 @@ if uploaded_file is not None:
 
     # New odds filters in the main section
     st.subheader("Filtri Quote")
-    try:
+    if home_odds_col in df.columns and away_odds_col in df.columns:
         min_home_odds = st.number_input('Quota minima Home', min_value=1.0, value=1.0, step=0.01)
         max_home_odds = st.number_input('Quota massima Home', min_value=1.0, value=50.0, step=0.01)
         min_away_odds = st.number_input('Quota minima Away', min_value=1.0, value=1.0, step=0.01)
         max_away_odds = st.number_input('Quota massima Away', min_value=1.0, value=50.0, step=0.01)
-
-        # Check for invalid ranges
+        
         if min_home_odds > max_home_odds:
             st.error("La quota minima Home non può essere maggiore di quella massima.")
         if min_away_odds > max_away_odds:
             st.error("La quota minima Away non può essere maggiore di quella massima.")
             
-        # Apply odds filters
         filtered_df = filtered_df[
             (filtered_df[home_odds_col] >= min_home_odds) & (filtered_df[home_odds_col] <= max_home_odds) &
             (filtered_df[away_odds_col] >= min_away_odds) & (filtered_df[away_odds_col] <= max_away_odds)
         ]
-    except KeyError:
-        st.warning("Assicurati di aver selezionato le colonne corrette per le quote nella barra laterale.")
-    except ValueError:
-        st.warning("Le colonne selezionate per le quote non contengono valori numerici validi. Prova a selezionare altre colonne.")
+    else:
+        st.warning(f"Colonne delle quote non trovate: '{home_odds_col}' o '{away_odds_col}'.")
+        st.info("Rimuovendo i filtri sulle quote.")
 
 
     st.subheader("Primo Gol")
@@ -148,39 +132,23 @@ if uploaded_file is not None:
 
     st.markdown("---")
     
-    # Display Filter Summary
-    st.subheader("Riepilogo Filtri Applicati")
-    summary = []
-    if selected_league != 'Tutti': summary.append(f"Campionato: **{selected_league}**")
-    if selected_home_team != 'Tutte': summary.append(f"Squadra di casa: **{selected_home_team}**")
-    if selected_away_team != 'Tutte': summary.append(f"Squadra in trasferta: **{selected_away_team}**")
-    if first_goal_timebands != 'Nessuno': summary.append(f"Primo gol ({first_goal_score}) nella fascia **{first_goal_timebands}**")
-    if has_second_goal and second_goal_timebands != 'Nessuno': summary.append(f"Secondo gol ({second_goal_score}) nella fascia **{second_goal_timebands}**")
-    if current_score != "0-0": summary.append(f"Risultato attuale al minuto **{min_start}** è **{current_score}**")
-    if not (min_home_odds == 1.0 and max_home_odds == 50.0): summary.append(f"Quota Home: **{min_home_odds} - {max_home_odds}**")
-    if not (min_away_odds == 1.0 and max_away_odds == 50.0): summary.append(f"Quota Away: **{min_away_odds} - {max_away_odds}**")
-    
-    if summary:
-        for item in summary: st.markdown(f"- {item}")
-    else:
-        st.info("Nessun filtro specifico applicato.")
+    st.header("Risultati dell'Analisi")
 
-    # Logic to filter based on goal events
+    # Rewritten goal filtering logic
     final_df = filtered_df.copy()
+    temp_df = []
     
-    home_score_at_start, away_score_at_start = 0, 0
+    current_home_goals, current_away_goals = 0, 0
     if current_score != "0-0":
         try:
-            home_score_at_start, away_score_at_start = map(int, current_score.split('-'))
+            current_home_goals, current_away_goals = map(int, current_score.split('-'))
         except ValueError:
             st.error("Formato del risultato attuale non valido. Usa il formato 'X-Y'.")
-            final_df = pd.DataFrame()
-    
-    # Combined filtering logic
-    temp_df = []
+            st.stop()
+
     for _, row in final_df.iterrows():
-        home_timings = parse_goal_timings(row['home_team_goal_timings'])
-        away_timings = parse_goal_timings(row['away_team_goal_timings'])
+        home_timings = parse_goal_timings(row.get('home_team_goal_timings', ''))
+        away_timings = parse_goal_timings(row.get('away_team_goal_timings', ''))
         all_timings = sorted(home_timings + away_timings)
         
         # Check first goal condition
@@ -191,10 +159,11 @@ if uploaded_file is not None:
             first_goal_min = all_timings[0]
             min_start_fg, min_end_fg = map(int, first_goal_timebands.split('-'))
             
-            first_goal_scorer = 'home' if first_goal_min in home_timings else 'away'
+            first_goal_scorer_is_home = (first_goal_min in home_timings)
+            
             is_valid_timing = min_start_fg <= first_goal_min <= min_end_fg
-            is_valid_score = (first_goal_score == '1-0' and first_goal_scorer == 'home') or \
-                             (first_goal_score == '0-1' and first_goal_scorer == 'away')
+            is_valid_score = (first_goal_score == '1-0' and first_goal_scorer_is_home) or \
+                             (first_goal_score == '0-1' and not first_goal_scorer_is_home)
             if is_valid_timing and is_valid_score:
                 first_goal_ok = True
         
@@ -229,7 +198,8 @@ if uploaded_file is not None:
         else:
             home_goals_at_start = len([t for t in home_timings if t <= min_start])
             away_goals_at_start = len([t for t in away_timings if t <= min_start])
-            if home_goals_at_start == home_score_at_start and away_goals_at_start == away_score_at_start:
+            
+            if home_goals_at_start == current_home_goals and away_goals_at_start == current_away_goals:
                 current_score_ok = True
         
         if not current_score_ok:
@@ -239,9 +209,6 @@ if uploaded_file is not None:
         
     final_df = pd.DataFrame(temp_df)
     
-    # Display results
-    st.header("Risultati dell'Analisi")
-
     if final_df.empty:
         st.warning("Nessuna partita trovata che corrisponde ai criteri di ricerca.")
     else:
@@ -250,7 +217,6 @@ if uploaded_file is not None:
         st.subheader("Anteprima Partite Filtrate")
         st.dataframe(final_df[['home_team_name', 'away_team_name', 'home_team_goal_count', 'away_team_goal_count', 'home_team_goal_timings', 'away_team_goal_timings']])
 
-        # Calculate FT win rates
         total_matches = len(final_df)
         home_wins = (final_df['home_team_goal_count'] > final_df['away_team_goal_count']).sum()
         draws = (final_df['home_team_goal_count'] == final_df['away_team_goal_count']).sum()
@@ -281,7 +247,7 @@ if uploaded_file is not None:
         all_goals_after_start = []
         
         for _, row in final_df.iterrows():
-            all_timings = parse_goal_timings(row['home_team_goal_timings']) + parse_goal_timings(row['away_team_goal_timings'])
+            all_timings = parse_goal_timings(row.get('home_team_goal_timings', '')) + parse_goal_timings(row.get('away_team_goal_timings', ''))
             goals_after_start = [t for t in all_timings if t > min_start]
             all_goals_after_start.extend(goals_after_start)
 
@@ -294,7 +260,7 @@ if uploaded_file is not None:
         
         for _, row in final_df.iterrows():
             match_id = row['timestamp']
-            all_timings = parse_goal_timings(row['home_team_goal_timings']) + parse_goal_timings(row['away_team_goal_timings'])
+            all_timings = parse_goal_timings(row.get('home_team_goal_timings', '')) + parse_goal_timings(row.get('away_team_goal_timings', ''))
             for goal_min in all_timings:
                 if goal_min > min_start:
                     if 1 <= goal_min <= 15:
