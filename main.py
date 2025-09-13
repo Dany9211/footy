@@ -1,119 +1,245 @@
 import streamlit as st
 import pandas as pd
-import io
+import re
 
-def pulisci_e_formatta_df(df):
-    """
-    Funzione per pulire e formattare un DataFrame di pandas.
-    - Rimuove le righe duplicate.
-    - Gestisce la presenza di colonne duplicate prima di estrarre e riposizionare
-      le colonne 'giorno', 'mese', 'anno' da 'date_GMT'.
-    - Ordina il DataFrame per 'timestamp' se la colonna esiste.
-    """
-    
-    # 1. Rimozione righe duplicate
-    righe_iniziali = len(df)
-    df.drop_duplicates(inplace=True)
-    duplicati_rimossi = righe_iniziali - len(df)
-    
-    st.write(f"✅ Rimosse **{duplicati_rimossi}** righe doppione.")
-    
-    # 2. Gestione colonne duplicate e estrazione di Giorno, Mese, Anno
-    if 'date_GMT' in df.columns:
-        try:
-            # Controllo e rimozione delle colonne esistenti per evitare l'errore
-            for col in ['giorno', 'mese', 'anno']:
-                if col in df.columns:
-                    df.drop(columns=[col], inplace=True)
-                    st.warning(f"⚠️ Rilevata e rimossa la colonna '{col}' esistente per prevenire duplicati.")
+# Set page configuration
+st.set_page_config(layout="wide")
 
-            df['date_GMT'] = df['date_GMT'].astype(str).str.split(' - ').str[0]
-            parts = df['date_GMT'].str.split(' ', expand=True)
-            df['giorno'] = parts[1]
-            df['mese'] = parts[0]
-            df['anno'] = parts[2]
-            
-            # Riordina le colonne
-            if 'attendance' in df.columns:
-                idx_attendance = df.columns.get_loc('attendance')
-                cols = df.columns.tolist()
-                new_cols = cols[:idx_attendance] + ['giorno', 'mese', 'anno'] + cols[idx_attendance:]
-                df = df.reindex(columns=new_cols)
-            
-            df.drop(columns=['date_GMT'], inplace=True)
-            st.write("✅ Colonne 'giorno', 'mese' e 'anno' create e 'date_GMT' rimossa.")
-        except Exception as e:
-            st.warning(f"⚠️ ERRORE durante l'elaborazione della colonna 'date_GMT': {e}")
+# Function to parse goal timings
+def parse_goal_timings(timings_str):
+    if pd.isna(timings_str) or timings_str.strip() == '':
+        return []
+    
+    timings = []
+    # Using regex to handle both '45'1' and '90'1' formats
+    for t in timings_str.split(','):
+        match = re.search(r'(\d+)\'(\d+)', t)
+        if match:
+            base_min = int(match.group(1))
+            extra_min = int(match.group(2))
+            timings.append(base_min + extra_min)
+        else:
+            try:
+                timings.append(int(t))
+            except ValueError:
+                continue
+    return sorted(list(set(timings)))
+
+# Function to determine outcome
+def get_outcome(home_goals, away_goals):
+    if home_goals > away_goals:
+        return 'Home Win'
+    elif away_goals > home_goals:
+        return 'Away Win'
     else:
-        st.info("ℹ️ AVVISO: Colonna 'date_GMT' non trovata.")
+        return 'Draw'
 
-    # 3. Ordinamento per timestamp
-    if 'timestamp' in df.columns:
-        df['timestamp'] = pd.to_numeric(df['timestamp'], errors='coerce')
-        df.sort_values(by='timestamp', inplace=True)
-        st.write("✅ Dataset ordinato cronologicamente.")
-        
-    return df
+# Load the data
+try:
+    df = pd.read_csv("UNITIbun.csv", delimiter=';')
+except FileNotFoundError:
+    st.error("File 'UNITIbun.csv' not found. Please make sure it's in the same directory.")
+    st.stop()
 
-def to_csv(df):
-    """Converte un DataFrame in un formato CSV in memoria per il download."""
-    output = io.StringIO()
-    df.to_csv(output, index=False, sep=';', decimal=',', encoding='utf-8-sig')
-    return output.getvalue().encode('utf-8-sig')
+# Data Cleaning and Preparation
+df = df.rename(columns={'Game Week': 'Game_Week'})
+df = df[df['status'] == 'complete'].copy()
 
-# --- Struttura dell'App Streamlit ---
-st.set_page_config(page_title="CSV Cleaner", page_icon="🧹")
-st.title("🧹 Pulitore e Formattatore di File CSV")
-st.markdown("Carica un file CSV per pulirlo, rimuovere i duplicati, e formattare la colonna 'date_GMT'.")
-
-# Componente per caricare il file
-uploaded_file = st.file_uploader(
-    "Carica un file CSV",
-    type=["csv"],
-    help="Supporta i delimitatori ';' e ',' e la codifica UTF-8 o Latin-1."
+# Add a combined timings column
+df['all_goal_timings'] = df.apply(
+    lambda row: parse_goal_timings(row['home_team_goal_timings']) + parse_goal_timings(row['away_team_goal_timings']), 
+    axis=1
 )
 
-if uploaded_file is not None:
-    # Mostra l'indicatore di caricamento
-    with st.spinner('Caricamento e lettura del file...'):
-        try:
-            # Tenta di leggere il file con diversi delimitatori e codifiche
-            try:
-                # Prova il punto e virgola (formato italiano)
-                df = pd.read_csv(uploaded_file, sep=';', low_memory=False, on_bad_lines='skip')
-                if df.shape[1] == 1:
-                    # Se non funziona, prova la virgola
-                    uploaded_file.seek(0)
-                    df = pd.read_csv(uploaded_file, sep=',', low_memory=False, on_bad_lines='skip')
-            except UnicodeDecodeError:
-                # Prova la codifica Latin-1 se la prima fallisce
-                uploaded_file.seek(0)
-                df = pd.read_csv(uploaded_file, sep=';', encoding='latin-1', low_memory=False, on_bad_lines='skip')
-                if df.shape[1] == 1:
-                    uploaded_file.seek(0)
-                    df = pd.read_csv(uploaded_file, sep=',', encoding='latin-1', low_memory=False, on_bad_lines='skip')
+# Sidebar filters
+st.sidebar.header("Filtri Partita")
 
-            st.success("🎉 File letto con successo!")
-            st.write("### Anteprima del file originale")
-            st.dataframe(df.head())
+leagues = sorted(df['GER-BUN'].unique())
+selected_league = st.sidebar.selectbox('Seleziona Campionato', ['Tutti'] + leagues)
 
-            # Elabora il DataFrame
-            df_pulito = pulisci_e_formatta_df(df.copy())
+home_teams = sorted(df['home_team_name'].unique())
+selected_home_team = st.sidebar.selectbox('Seleziona Squadra di Casa', ['Tutte'] + home_teams)
+
+away_teams = sorted(df['away_team_name'].unique())
+selected_away_team = st.sidebar.selectbox('Seleziona Squadra in Trasferta', ['Tutte'] + away_teams)
+
+# Filter the dataframe
+filtered_df = df.copy()
+if selected_league != 'Tutti':
+    filtered_df = filtered_df[filtered_df['GER-BUN'] == selected_league]
+if selected_home_team != 'Tutte':
+    filtered_df = filtered_df[filtered_df['home_team_name'] == selected_home_team]
+if selected_away_team != 'Tutte':
+    filtered_df = filtered_df[filtered_df['away_team_name'] == selected_away_team]
+
+st.title("⚽ Analisi Statistica sui Gol")
+st.markdown("Usa i filtri a sinistra per affinare la tua analisi.")
+st.markdown("---")
+
+# Main Page Inputs
+st.header("Impostazioni per l'Analisi Statistica")
+
+# First Goal
+st.subheader("Primo Gol")
+first_goal_score = st.radio("Risultato del Primo Gol", ['1-0', '0-1'])
+first_goal_timebands = st.selectbox(
+    "Fascia oraria del Primo Gol",
+    ['Nessuno'] + ['0-5', '0-10', '11-20', '21-30', '31-39', '40-45', '46-55', '56-65', '66-75', '75-80', '75-90', '80-90']
+)
+
+# Second Goal
+st.subheader("Secondo Gol (Opzionale)")
+has_second_goal = st.checkbox("Considera il secondo gol?")
+second_goal_score = None
+second_goal_timebands = 'Nessuno'
+
+if has_second_goal:
+    second_goal_score = st.radio("Risultato del Secondo Gol", ['2-0', '0-2', '1-1'])
+    second_goal_timebands = st.selectbox(
+        "Fascia oraria del Secondo Gol",
+        ['Nessuno'] + ['0-5', '0-10', '11-20', '21-30', '31-39', '40-45', '46-55', '56-65', '66-75', '75-80', '75-90', '80-90']
+    )
+
+# Current state
+st.subheader("Stato Attuale della Partita")
+min_start = st.slider("Minuto dal quale partire con le statistiche", 0, 90, 45)
+current_score = st.text_input("Risultato attuale (es. 1-0)", "0-0")
+
+st.markdown("---")
+
+# Logic to filter based on goal events
+final_df = filtered_df.copy()
+
+if first_goal_timebands != 'Nessuno':
+    min_start_fg, min_end_fg = map(int, first_goal_timebands.split('-'))
+    home_fg_count, away_fg_count = map(int, first_goal_score.split('-'))
+
+    temp_df = []
+    for _, row in final_df.iterrows():
+        home_timings = parse_goal_timings(row['home_team_goal_timings'])
+        away_timings = parse_goal_timings(row['away_team_goal_timings'])
+        
+        # Check if the first goal happened in the selected timeband and with the selected score
+        if len(home_timings) + len(away_timings) >= 1:
+            first_goal_min = min(home_timings + away_timings)
             
-            st.write("---")
-            st.write("### Anteprima del file pulito e formattato")
-            st.dataframe(df_pulito.head())
-
-            # Pulsante per il download del file elaborato
-            csv_data = to_csv(df_pulito)
+            # Determine who scored first
+            if first_goal_min in home_timings:
+                goal_scorer = 'home'
+            else:
+                goal_scorer = 'away'
             
-            st.download_button(
-                label="📥 Scarica il file CSV pulito",
-                data=csv_data,
-                file_name=f'pulito_{uploaded_file.name}',
-                mime='text/csv',
-            )
+            is_valid_timing = min_start_fg <= first_goal_min <= min_end_fg
+            is_valid_score = (first_goal_score == '1-0' and goal_scorer == 'home') or \
+                             (first_goal_score == '0-1' and goal_scorer == 'away')
+            
+            if is_valid_timing and is_valid_score:
+                temp_df.append(row)
+    
+    final_df = pd.DataFrame(temp_df)
 
-        except Exception as e:
-            st.error(f"❌ Si è verificato un errore durante l'elaborazione del file: {e}")
-            st.help("Verifica che il file sia un CSV valido e che non sia corrotto.")
+if has_second_goal and second_goal_timebands != 'Nessuno':
+    min_start_sg, min_end_sg = map(int, second_goal_timebands.split('-'))
+    home_sg_count, away_sg_count = map(int, second_goal_score.split('-'))
+
+    temp_df = []
+    for _, row in final_df.iterrows():
+        home_timings = parse_goal_timings(row['home_team_goal_timings'])
+        away_timings = parse_goal_timings(row['away_team_goal_timings'])
+        
+        # Check if a second goal happened in the selected timeband and with the selected score
+        if len(home_timings) + len(away_timings) >= 2:
+            all_timings = sorted(home_timings + away_timings)
+            second_goal_min = all_timings[1]
+
+            home_goals_at_second_goal = len([m for m in home_timings if m <= second_goal_min])
+            away_goals_at_second_goal = len([m for m in away_timings if m <= second_goal_min])
+
+            is_valid_timing = min_start_sg <= second_goal_min <= min_end_sg
+            is_valid_score = (home_goals_at_second_goal == home_sg_count and away_goals_at_second_goal == away_sg_count)
+            
+            if is_valid_timing and is_valid_score:
+                temp_df.append(row)
+
+    final_df = pd.DataFrame(temp_df)
+
+# Adjust data based on current score
+if current_score != "0-0":
+    try:
+        current_home_goals, current_away_goals = map(int, current_score.split('-'))
+        
+        temp_df = []
+        for _, row in final_df.iterrows():
+            home_goals = len([t for t in parse_goal_timings(row['home_team_goal_timings']) if t <= min_start])
+            away_goals = len([t for t in parse_goal_timings(row['away_team_goal_timings']) if t <= min_start])
+            
+            if home_goals == current_home_goals and away_goals == current_away_goals:
+                temp_df.append(row)
+        final_df = pd.DataFrame(temp_df)
+
+    except ValueError:
+        st.error("Formato del risultato attuale non valido. Usa il formato 'X-Y'.")
+        final_df = pd.DataFrame() # Empty dataframe if format is wrong
+
+# Display results
+st.header("Risultati dell'Analisi")
+
+if final_df.empty:
+    st.warning("Nessuna partita trovata che corrisponda ai criteri di ricerca.")
+else:
+    st.write(f"Numero di partite trovate: **{len(final_df)}**")
+    
+    # Calculate FT win rates
+    total_matches = len(final_df)
+    home_wins = (final_df['home_team_goal_count'] > final_df['away_team_goal_count']).sum()
+    draws = (final_df['home_team_goal_count'] == final_df['away_team_goal_count']).sum()
+    away_wins = (final_df['home_team_goal_count'] < final_df['away_team_goal_count']).sum()
+
+    st.subheader("Winrate FT")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Home Win", f"{home_wins / total_matches * 100:.2f}%")
+    col2.metric("Draw", f"{draws / total_matches * 100:.2f}%")
+    col3.metric("Away Win", f"{away_wins / total_matches * 100:.2f}%")
+
+    st.subheader("Over FT")
+    over_results = {}
+    for threshold in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
+        over_count = (final_df['total_goal_count'] > threshold).sum()
+        over_results[f"Over {threshold}"] = f"{over_count / total_matches * 100:.2f}%"
+    
+    cols = st.columns(6)
+    for i, (key, value) in enumerate(over_results.items()):
+        cols[i].metric(key, value)
+
+    st.subheader("Fasce Orarie dei Gol Successivi")
+    all_goals_after_start = []
+    
+    for _, row in final_df.iterrows():
+        all_timings = parse_goal_timings(row['home_team_goal_timings']) + parse_goal_timings(row['away_team_goal_timings'])
+        goals_after_start = [t for t in all_timings if t > min_start]
+        all_goals_after_start.extend(goals_after_start)
+
+    time_bands = {
+        '1-15': 0, '16-30': 0, '31-45': 0, '45+': 0, '46-60': 0, '61-75': 0, '76-90': 0, '90+': 0
+    }
+
+    for goal_min in all_goals_after_start:
+        if 1 <= goal_min <= 15:
+            time_bands['1-15'] += 1
+        elif 16 <= goal_min <= 30:
+            time_bands['16-30'] += 1
+        elif 31 <= goal_min <= 45:
+            time_bands['31-45'] += 1
+        elif 45 < goal_min <= 45 + 5: # Assuming 45+ is up to minute 50
+            time_bands['45+'] += 1
+        elif 46 <= goal_min <= 60:
+            time_bands['46-60'] += 1
+        elif 61 <= goal_min <= 75:
+            time_bands['61-75'] += 1
+        elif 76 <= goal_min <= 90:
+            time_bands['76-90'] += 1
+        elif goal_min > 90:
+            time_bands['90+'] += 1
+    
+    st.bar_chart(time_bands)
+    st.write(time_bands)
