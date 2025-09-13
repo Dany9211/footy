@@ -95,7 +95,6 @@ if uploaded_file is not None:
         value=(float(df[away_odds_col].min()), float(df[away_odds_col].max()))
     )
 
-
     # Filter the dataframe
     filtered_df = df.copy()
     if selected_league != 'Tutti':
@@ -274,7 +273,8 @@ if uploaded_file is not None:
             elif goal_min > 90:
                 time_bands['90+'] += 1
         
-        st.bar_chart(time_bands)
-        st.write(time_bands)
+        time_bands_df = pd.DataFrame(time_bands.items(), columns=['Fascia Oraria', 'Numero di Gol'])
+        st.dataframe(time_bands_df.style.background_gradient(cmap='Oranges', subset=['Numero di Gol']))
+
 else:
     st.info("Per iniziare, carica un file CSV usando il pannello a sinistra. L'app configurerà automaticamente i filtri successivi.")
