@@ -335,6 +335,7 @@ if 'home_team_goal_count' in final_df.columns and 'away_team_goal_count' in fina
 
     winrate_data = {
         'Statistica': ['Home Win', 'Draw', 'Away Win'],
+        'Numero Partite': [home_wins, draws, away_wins],
         '%': [
             round(home_wins / total_matches * 100, 2),
             round(draws / total_matches * 100, 2),
@@ -354,30 +355,26 @@ if 'total_goal_count' in final_df.columns:
     over_results = {}
     for threshold in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
         over_count = (final_df['total_goal_count'] > threshold).sum()
-        over_results[f"Over {threshold}"] = round(over_count / total_matches * 100, 2)
+        over_results[f"Over {threshold}"] = over_count
 
-    over_df = pd.DataFrame(over_results.items(), columns=['Statistica', '%'])
+    over_df = pd.DataFrame(over_results.items(), columns=['Statistica', 'Numero Partite'])
+    over_df['%'] = over_df['Numero Partite'] / total_matches * 100
     st.subheader("Over FT")
     st.dataframe(over_df.style.background_gradient(cmap='RdYlGn', subset=['%']))
+    
+    # Under FT
+    under_results = {}
+    for threshold in [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]:
+        under_count = (final_df['total_goal_count'] < threshold).sum()
+        under_results[f"Under {threshold}"] = under_count
+        
+    under_df = pd.DataFrame(under_results.items(), columns=['Statistica', 'Numero Partite'])
+    under_df['%'] = under_df['Numero Partite'] / total_matches * 100
+    st.subheader("Under FT")
+    st.dataframe(under_df.style.background_gradient(cmap='RdYlGn', subset=['%']))
 
 # Fasce orarie dei gol successivi (dal cutoff in poi)
 st.subheader("Fasce Orarie dei Gol Successivi")
-time_bands = {
-    '1-15': 0, '16-30': 0, '31-45': 0, '45+': 0, '46-60': 0, '61-75': 0, '76-90': 0, '90+': 0
-}
-time_band_matches = {k: set() for k in time_bands.keys()}
-
-for _, row in final_df.iterrows():
-    match_id = row.get('timestamp', str(row.name))
-    all_t = row['all_parsed']
-    for t in all_t:
-        if t > float(min_start):
-            band = minute_to_band(t)
-            time_bands[band] += 1
-            time_band_matches[band].add(match_id)
-            
-tb_df = pd.DataFrame(time_bands.items(), columns=['Fascia Oraria', 'Numero di Gol'])
-
 time_band_matches = {
     '1-15': set(), '16-30': set(), '31-45': set(), '45+': set(), '46-60': set(), '61-75': set(), '76-90': set(), '90+': set()
 }
@@ -390,10 +387,10 @@ for _, row in final_df.iterrows():
             band = minute_to_band(t)
             time_band_matches[band].add(match_id)
 
+tb_df = pd.DataFrame(time_band_matches.keys(), columns=['Fascia Oraria'])
 tb_df['Numero di Partite'] = [len(time_band_matches[band]) for band in tb_df['Fascia Oraria']]
 tb_df['%'] = [
     round(len(time_band_matches[band]) / total_matches * 100, 2) if total_matches > 0 else 0
     for band in tb_df['Fascia Oraria']
 ]
-
-st.dataframe(tb_df[['Fascia Oraria', 'Numero di Partite', '%']].style.background_gradient(cmap='RdYlGn', subset=['%']))
+st.dataframe(tb_df.style.background_gradient(cmap='RdYlGn', subset=['%']))
