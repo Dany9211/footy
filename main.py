@@ -165,79 +165,80 @@ if uploaded_file is not None:
     else:
         st.info("Nessun filtro specifico applicato.")
 
-
     # Logic to filter based on goal events
     final_df = filtered_df.copy()
-
-    # Apply first goal filter
-    if first_goal_timebands != 'Nessuno':
-        min_start_fg, min_end_fg = map(int, first_goal_timebands.split('-'))
-        
-        temp_df = []
-        for _, row in final_df.iterrows():
-            home_timings = parse_goal_timings(row['home_team_goal_timings'])
-            away_timings = parse_goal_timings(row['away_team_goal_timings'])
-            
-            if len(home_timings) + len(away_timings) >= 1:
-                first_goal_min = min(home_timings + away_timings)
-                
-                if first_goal_min in home_timings:
-                    goal_scorer = 'home'
-                else:
-                    goal_scorer = 'away'
-                
-                is_valid_timing = min_start_fg <= first_goal_min <= min_end_fg
-                is_valid_score = (first_goal_score == '1-0' and goal_scorer == 'home') or \
-                                 (first_goal_score == '0-1' and goal_scorer == 'away')
-                
-                if is_valid_timing and is_valid_score:
-                    temp_df.append(row)
-        
-        final_df = pd.DataFrame(temp_df)
     
-    # Apply second goal filter
-    if has_second_goal and second_goal_timebands != 'Nessuno':
-        min_start_sg, min_end_sg = map(int, second_goal_timebands.split('-'))
-        home_sg_count, away_sg_count = map(int, second_goal_score.split('-'))
-
-        temp_df = []
-        for _, row in final_df.iterrows():
-            home_timings = parse_goal_timings(row['home_team_goal_timings'])
-            away_timings = parse_goal_timings(row['away_team_goal_timings'])
-            
-            if len(home_timings) + len(away_timings) >= 2:
-                all_timings = sorted(home_timings + away_timings)
-                second_goal_min = all_timings[1]
-
-                home_goals_at_second_goal = len([m for m in home_timings if m <= second_goal_min])
-                away_goals_at_second_goal = len([m for m in away_timings if m <= second_goal_min])
-
-                is_valid_timing = min_start_sg <= second_goal_min <= min_end_sg
-                is_valid_score = (home_goals_at_second_goal == home_sg_count and away_goals_at_second_goal == away_sg_count)
-                
-                if is_valid_timing and is_valid_score:
-                    temp_df.append(row)
-
-        final_df = pd.DataFrame(temp_df)
-
-    # Adjust data based on current score
+    home_score_at_start, away_score_at_start = 0, 0
     if current_score != "0-0":
         try:
-            current_home_goals, current_away_goals = map(int, current_score.split('-'))
-            
-            temp_df = []
-            for _, row in final_df.iterrows():
-                home_goals = len([t for t in parse_goal_timings(row['home_team_goal_timings']) if t <= min_start])
-                away_goals = len([t for t in parse_goal_timings(row['away_team_goal_timings']) if t <= min_start])
-                
-                if home_goals == current_home_goals and away_goals == current_away_goals:
-                    temp_df.append(row)
-            final_df = pd.DataFrame(temp_df)
-
+            home_score_at_start, away_score_at_start = map(int, current_score.split('-'))
         except ValueError:
             st.error("Formato del risultato attuale non valido. Usa il formato 'X-Y'.")
             final_df = pd.DataFrame()
-
+    
+    # Combined filtering logic
+    temp_df = []
+    for _, row in final_df.iterrows():
+        home_timings = parse_goal_timings(row['home_team_goal_timings'])
+        away_timings = parse_goal_timings(row['away_team_goal_timings'])
+        all_timings = sorted(home_timings + away_timings)
+        
+        # Check first goal condition
+        first_goal_ok = False
+        if first_goal_timebands == 'Nessuno':
+            first_goal_ok = True
+        elif len(all_timings) >= 1:
+            first_goal_min = all_timings[0]
+            min_start_fg, min_end_fg = map(int, first_goal_timebands.split('-'))
+            
+            first_goal_scorer = 'home' if first_goal_min in home_timings else 'away'
+            is_valid_timing = min_start_fg <= first_goal_min <= min_end_fg
+            is_valid_score = (first_goal_score == '1-0' and first_goal_scorer == 'home') or \
+                             (first_goal_score == '0-1' and first_goal_scorer == 'away')
+            if is_valid_timing and is_valid_score:
+                first_goal_ok = True
+        
+        if not first_goal_ok:
+            continue
+            
+        # Check second goal condition
+        second_goal_ok = False
+        if not has_second_goal or second_goal_timebands == 'Nessuno':
+            second_goal_ok = True
+        elif len(all_timings) >= 2:
+            second_goal_min = all_timings[1]
+            min_start_sg, min_end_sg = map(int, second_goal_timebands.split('-'))
+            
+            home_goals_at_second = len([t for t in home_timings if t <= second_goal_min])
+            away_goals_at_second = len([t for t in away_timings if t <= second_goal_min])
+            
+            is_valid_timing = min_start_sg <= second_goal_min <= min_end_sg
+            home_sg_count, away_sg_count = map(int, second_goal_score.split('-'))
+            is_valid_score = (home_goals_at_second == home_sg_count and away_goals_at_second == away_sg_count)
+            
+            if is_valid_timing and is_valid_score:
+                second_goal_ok = True
+        
+        if not second_goal_ok:
+            continue
+            
+        # Check current score condition
+        current_score_ok = False
+        if current_score == "0-0":
+            current_score_ok = True
+        else:
+            home_goals_at_start = len([t for t in home_timings if t <= min_start])
+            away_goals_at_start = len([t for t in away_timings if t <= min_start])
+            if home_goals_at_start == home_score_at_start and away_goals_at_start == away_score_at_start:
+                current_score_ok = True
+        
+        if not current_score_ok:
+            continue
+            
+        temp_df.append(row)
+        
+    final_df = pd.DataFrame(temp_df)
+    
     # Display results
     st.header("Risultati dell'Analisi")
 
@@ -245,7 +246,10 @@ if uploaded_file is not None:
         st.warning("Nessuna partita trovata che corrisponde ai criteri di ricerca.")
     else:
         st.write(f"Numero di partite trovate: **{len(final_df)}**")
-        
+
+        st.subheader("Anteprima Partite Filtrate")
+        st.dataframe(final_df[['home_team_name', 'away_team_name', 'home_team_goal_count', 'away_team_goal_count', 'home_team_goal_timings', 'away_team_goal_timings']])
+
         # Calculate FT win rates
         total_matches = len(final_df)
         home_wins = (final_df['home_team_goal_count'] > final_df['away_team_goal_count']).sum()
