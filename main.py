@@ -11,7 +11,6 @@ def parse_goal_timings(timings_str):
         return []
     
     timings = []
-    # Using regex to handle both '45'1' and '90'1' formats
     for t in timings_str.split(','):
         match = re.search(r'(\d+)\'(\d+)', t)
         if match:
@@ -43,7 +42,6 @@ st.sidebar.header("Carica il tuo file")
 uploaded_file = st.sidebar.file_uploader("Carica il tuo file CSV", type="csv")
 
 if uploaded_file is not None:
-    # Load the data
     try:
         df = pd.read_csv(uploaded_file, delimiter=';')
     except Exception as e:
@@ -54,6 +52,12 @@ if uploaded_file is not None:
     df = df.rename(columns={'Game Week': 'Game_Week'})
     df = df[df['status'] == 'complete'].copy()
 
+    # Dynamic league column selection
+    all_columns = df.columns.tolist()
+    st.sidebar.markdown("---")
+    st.sidebar.header("Configurazione Colonne")
+    selected_league_col = st.sidebar.selectbox('Seleziona la colonna del campionato', all_columns)
+    
     # Add a combined timings column
     df['all_goal_timings'] = df.apply(
         lambda row: parse_goal_timings(row['home_team_goal_timings']) + parse_goal_timings(row['away_team_goal_timings']), 
@@ -62,14 +66,8 @@ if uploaded_file is not None:
 
     # Sidebar filters
     st.sidebar.header("Filtri Partita")
-    
-    # Check if 'GER-BUN' column exists before trying to access it
-    if 'GER-BUN' in df.columns:
-        leagues = sorted(df['GER-BUN'].unique())
-        selected_league = st.sidebar.selectbox('Seleziona Campionato', ['Tutti'] + leagues)
-    else:
-        st.sidebar.warning("Colonna 'GER-BUN' non trovata nel file. Filtro campionato non disponibile.")
-        selected_league = 'Tutti'
+    leagues = sorted(df[selected_league_col].unique())
+    selected_league = st.sidebar.selectbox('Seleziona Campionato', ['Tutti'] + leagues)
         
     home_teams = sorted(df['home_team_name'].unique())
     selected_home_team = st.sidebar.selectbox('Seleziona Squadra di Casa', ['Tutte'] + home_teams)
@@ -79,8 +77,8 @@ if uploaded_file is not None:
 
     # Filter the dataframe
     filtered_df = df.copy()
-    if selected_league != 'Tutti' and 'GER-BUN' in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df['GER-BUN'] == selected_league]
+    if selected_league != 'Tutti':
+        filtered_df = filtered_df[filtered_df[selected_league_col] == selected_league]
     if selected_home_team != 'Tutte':
         filtered_df = filtered_df[filtered_df['home_team_name'] == selected_home_team]
     if selected_away_team != 'Tutte':
@@ -89,7 +87,6 @@ if uploaded_file is not None:
     # Main Page Inputs
     st.header("Impostazioni per l'Analisi Statistica")
 
-    # First Goal
     st.subheader("Primo Gol")
     first_goal_score = st.radio("Risultato del Primo Gol", ['1-0', '0-1'])
     first_goal_timebands = st.selectbox(
@@ -97,7 +94,6 @@ if uploaded_file is not None:
         ['Nessuno'] + ['0-5', '0-10', '11-20', '21-30', '31-39', '40-45', '46-55', '56-65', '66-75', '75-80', '75-90', '80-90']
     )
 
-    # Second Goal
     st.subheader("Secondo Gol (Opzionale)")
     has_second_goal = st.checkbox("Considera il secondo gol?")
     second_goal_score = None
@@ -110,7 +106,6 @@ if uploaded_file is not None:
             ['Nessuno'] + ['0-5', '0-10', '11-20', '21-30', '31-39', '40-45', '46-55', '56-65', '66-75', '75-80', '75-90', '80-90']
         )
 
-    # Current state
     st.subheader("Stato Attuale della Partita")
     min_start = st.slider("Minuto dal quale partire con le statistiche", 0, 90, 45)
     current_score = st.text_input("Risultato attuale (es. 1-0)", "0-0")
@@ -236,7 +231,7 @@ if uploaded_file is not None:
                 time_bands['16-30'] += 1
             elif 31 <= goal_min <= 45:
                 time_bands['31-45'] += 1
-            elif 45 < goal_min <= 45 + 5: # Assuming 45+ is up to minute 50
+            elif 45 < goal_min <= 45 + 5:
                 time_bands['45+'] += 1
             elif 46 <= goal_min <= 60:
                 time_bands['46-60'] += 1
@@ -250,4 +245,4 @@ if uploaded_file is not None:
         st.bar_chart(time_bands)
         st.write(time_bands)
 else:
-    st.info("Per iniziare, carica un file CSV usando il pannello a sinistra. Assicurati che abbia le stesse colonne del file che mi hai fornito in precedenza.")
+    st.info("Per iniziare, carica un file CSV usando il pannello a sinistra. L'app configurerà automaticamente i filtri successivi.")
