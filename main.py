@@ -93,10 +93,10 @@ if uploaded_file is not None:
 
     # New odds filters in the main section
     st.subheader("Filtri Quote")
-    min_home_odds = st.number_input('Quota minima Home', min_value=1.0, value=float(df[home_odds_col].min()), step=0.01)
-    max_home_odds = st.number_input('Quota massima Home', min_value=1.0, value=float(df[home_odds_col].max()), step=0.01)
-    min_away_odds = st.number_input('Quota minima Away', min_value=1.0, value=float(df[away_odds_col].min()), step=0.01)
-    max_away_odds = st.number_input('Quota massima Away', min_value=1.0, value=float(df[away_odds_col].max()), step=0.01)
+    min_home_odds = st.number_input('Quota minima Home', min_value=1.0, value=1.0, step=0.01)
+    max_home_odds = st.number_input('Quota massima Home', min_value=1.0, value=50.0, step=0.01)
+    min_away_odds = st.number_input('Quota minima Away', min_value=1.0, value=1.0, step=0.01)
+    max_away_odds = st.number_input('Quota massima Away', min_value=1.0, value=50.0, step=0.01)
 
     # Apply odds filters
     filtered_df = filtered_df[
