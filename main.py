@@ -52,11 +52,15 @@ if uploaded_file is not None:
     df = df.rename(columns={'Game Week': 'Game_Week'})
     df = df[df['status'] == 'complete'].copy()
 
-    # Dynamic league column selection
+    # Dynamic column selection
     all_columns = df.columns.tolist()
     st.sidebar.markdown("---")
     st.sidebar.header("Configurazione Colonne")
     selected_league_col = st.sidebar.selectbox('Seleziona la colonna del campionato', all_columns)
+    
+    # New odds column selectors
+    home_odds_col = st.sidebar.selectbox('Seleziona la colonna per le quote Home', all_columns)
+    away_odds_col = st.sidebar.selectbox('Seleziona la colonna per le quote Away', all_columns)
     
     # Add a combined timings column
     df['all_goal_timings'] = df.apply(
@@ -75,6 +79,23 @@ if uploaded_file is not None:
     away_teams = sorted(df['away_team_name'].unique())
     selected_away_team = st.sidebar.selectbox('Seleziona Squadra in Trasferta', ['Tutte'] + away_teams)
 
+    # New odds filters
+    st.sidebar.markdown("---")
+    st.sidebar.header("Filtri Quote")
+    min_home_odds, max_home_odds = st.sidebar.slider(
+        'Range quote Home',
+        min_value=float(df[home_odds_col].min()),
+        max_value=float(df[home_odds_col].max()),
+        value=(float(df[home_odds_col].min()), float(df[home_odds_col].max()))
+    )
+    min_away_odds, max_away_odds = st.sidebar.slider(
+        'Range quote Away',
+        min_value=float(df[away_odds_col].min()),
+        max_value=float(df[away_odds_col].max()),
+        value=(float(df[away_odds_col].min()), float(df[away_odds_col].max()))
+    )
+
+
     # Filter the dataframe
     filtered_df = df.copy()
     if selected_league != 'Tutti':
@@ -83,6 +104,12 @@ if uploaded_file is not None:
         filtered_df = filtered_df[filtered_df['home_team_name'] == selected_home_team]
     if selected_away_team != 'Tutte':
         filtered_df = filtered_df[filtered_df['away_team_name'] == selected_away_team]
+    
+    # Apply odds filters
+    filtered_df = filtered_df[
+        (filtered_df[home_odds_col] >= min_home_odds) & (filtered_df[home_odds_col] <= max_home_odds) &
+        (filtered_df[away_odds_col] >= min_away_odds) & (filtered_df[away_odds_col] <= max_away_odds)
+    ]
 
     # Main Page Inputs
     st.header("Impostazioni per l'Analisi Statistica")
@@ -180,7 +207,7 @@ if uploaded_file is not None:
 
         except ValueError:
             st.error("Formato del risultato attuale non valido. Usa il formato 'X-Y'.")
-            final_df = pd.DataFrame() # Empty dataframe if format is wrong
+            final_df = pd.DataFrame()
 
     # Display results
     st.header("Risultati dell'Analisi")
